@@ -359,13 +359,13 @@ Qwen3.8-27B 是 64 层 hybrid 结构，其中 48 层 linear attention、16 层 f
 论坛附件只需要一个文件：
 
 ```text
-qwen38-k100ai-dflash2-tp4-patchset-draft.tar.gz
+qwen38-k100ai-patchset.tar.gz
 ```
 
 当前 Draft SHA256：
 
 ```text
-ba25ce15b7eea93e60aa5851c8882068800e3d6ac2ec494bf5a50d125611a462
+bf629b2cd5a4323da300a1aaf1eee048d45f5c1f608309ec6798721bb00d9b62
 ```
 
 这个包里不是模型，也不是 Docker 镜像，只是我们的修改成果。

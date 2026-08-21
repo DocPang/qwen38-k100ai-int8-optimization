@@ -2,8 +2,8 @@ services:
   qwen38-dflash2-tp4:
     build:
       context: .
-    image: qwen38-k100ai-dflash2-tp4:local
-    container_name: qwen38-k100ai-dflash2-tp4
+    image: qwen38-w8a8-k100ai-dflash2-tp4:local
+    container_name: qwen38-w8a8-k100ai-dflash2-tp4
     network_mode: host
     ipc: host
     restart: unless-stopped
