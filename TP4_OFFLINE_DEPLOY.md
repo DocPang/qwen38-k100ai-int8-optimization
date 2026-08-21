@@ -1,5 +1,7 @@
 # 离线算力服务器部署教程
 
+[← 返回项目总览](README.md)
+
 > ⚠️ **免责声明 / 风险提示**
 >
 > 本项目是社区研究成果，不是海光、SourceFind、Qwen、SGLang 或 DFlash2 官方发行版。部署会直接访问 GPU，并依赖宿主机的 K100AI 驱动、DTK、hyhal、PCIe/P2P 和 `renderD*` 设备映射。
@@ -51,7 +53,7 @@ hf download z-lab/Qwen3.8-27B-DFlash2 \
 ### D. 本项目
 
 ```bash
-git clone https://github.com/DocPang/qwen38-w8a8-k100ai-dflash2-tp4.git
+git clone https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
 ```
 
 本项目不到 1MB。
@@ -62,7 +64,7 @@ git clone https://github.com/DocPang/qwen38-w8a8-k100ai-dflash2-tp4.git
 sourcefind-sglang0512-k100ai-20260620.tar
 Qwen3.8-27B-SmoothQuant-W8A8-INT8/
 Qwen3.8-27B-DFlash2/
-qwen38-w8a8-k100ai-dflash2-tp4/
+qwen38-k100ai-int8-optimization/
 ```
 
 ---
