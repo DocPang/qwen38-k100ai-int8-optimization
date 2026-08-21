@@ -1,6 +1,6 @@
 # TP1 Profile：Qwen3.8-27B W8A8 + DFlash2 on K100AI
 
-> **定位：单张 K100AI / Agent128K / 长上下文优先**  
+> **定位：单张 K100AI / Agent128K / 长上下文优先**
 > 状态：**ACCEPTED**（2026-08-21）
 
 > ⚠️ 本 Profile 依赖宿主机已经正常工作的 K100AI 驱动、DTK/hyhal 和 Docker GPU 环境。本项目不安装或替换宿主机驱动。当前文档先公开正式验收结果与技术边界；公共部署包正在做最后冻结，不建议把 TP4 根目录脚本直接改成 TP1 参数硬跑。
