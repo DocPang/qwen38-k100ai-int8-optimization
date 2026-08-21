@@ -7,4 +7,13 @@ RUN mkdir -p /opt/qwen38-k100ai \
  && /opt/qwen38-k100ai/install_into_image.sh \
  && rm -f /tmp/qwen38-k100ai-patchset.tar.gz
 
+# Native K100AI kernels are deliberately built on the deployment host first
+# (inside the pinned SourceFind image, without /dev/kfd or renderD access).
+# Docker build must fail if any expected freshly-built userspace extension is absent.
+COPY .build/native/ /data/qwen38-27b-k100ai-int8-opt/native_ext/
+RUN test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_v7_sglang.so \
+ && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_generic_v2_sglang.so \
+ && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_deep_v4_sglang.so \
+ && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_tp4_row_ldsx_v1_sglang.so
+
 ENTRYPOINT ["/opt/qwen38-k100ai/start.sh"]

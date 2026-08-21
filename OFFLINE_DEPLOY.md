@@ -8,7 +8,7 @@
 
 这篇只讲最简单的离线流程：
 
-**联网机器下载 → 搬到算力服务器 → `docker load` → `docker build` → `docker run`。**
+**联网机器下载 → 搬到算力服务器 → `docker load` → 安全编译用户态 HIP 扩展 → `docker build` → `docker run`。**
 
 不要求离线服务器安装 Git、Hugging Face CLI 或 Docker Compose。
 
@@ -119,19 +119,27 @@ docker load -i sourcefind-sglang0512-k100ai-20260620.tar
 docker image inspect qwen38-sourcefind-base:20260620 >/dev/null && echo OK
 ```
 
-然后构建我们的薄优化层：
+然后在离线服务器**本机**重新编译 4 个 K100AI 用户态 HIP 扩展，并构建薄优化镜像：
 
 ```bash
 cd /data/qwen38-offline/qwen38-w8a8-k100ai-dflash2-tp4
 
-docker build \
-  --build-arg BASE_IMAGE=qwen38-sourcefind-base:20260620 \
-  -t qwen38-w8a8-k100ai-dflash2-tp4:local .
+BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 ```
 
-这个步骤使用刚才 `docker load` 的**本地基础镜像**，离线服务器不需要访问 SourceFind Harbor。
+这里的“编译”不是编译或安装宿主机驱动。`build_image.sh` 会启动一个临时 SourceFind 容器，固定 `PYTORCH_ROCM_ARCH=gfx928`，并且：
 
-我们已经在 K100AI 验证机的 Docker 18.09 环境实际测试过这条离线构建路径。
+- `--network none`；
+- **不映射 `/dev/kfd`**；
+- **不映射任何 `renderD*`**；
+- `/opt/hyhal` 只读挂载；
+- 只把 4 个 `.so` 写到仓库本地 `.build/native/`；
+- 四个产物少任何一个都直接失败；
+- 随后的 Dockerfile 只接受这四个刚编译出的 `.so`。
+
+因此这一步不会占用 GPU，也不会卸载、重载或替换宿主机 `amdgpu` 驱动。
+
+这个流程使用刚才 `docker load` 的**本地基础镜像**，离线服务器不需要访问 SourceFind Harbor。我们已经在 K100AI 验证机的 Docker 18.09 环境实际完成了“四个源码编译 → Docker 镜像构建 → 无 GPU PyBind 动态加载”验证。
 
 ---
 
@@ -204,9 +212,7 @@ docker ps | grep qwen38-w8a8-dflash2-tp4
 只把新版这个小仓库拷到离线服务器，再重新执行：
 
 ```bash
-docker build \
-  --build-arg BASE_IMAGE=qwen38-sourcefind-base:20260620 \
-  -t qwen38-w8a8-k100ai-dflash2-tp4:local .
+BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 ```
 
 然后删除旧容器、按上面的 `docker run` 重新启动即可。
@@ -217,7 +223,7 @@ docker build \
 
 ```text
 联网机：拉官方镜像 + 两份权重 + GitHub 仓库 → 搬到离线服务器
-离线机：docker load → docker build → docker run
+离线机：docker load → 无 GPU 编译 native → docker build → docker run
 ```
 
 **不需要服务器联网，不需要 Docker Compose，也不需要群友自己手工打 20 层补丁。**
