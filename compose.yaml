@@ -2,6 +2,8 @@ services:
   qwen38-dflash2-tp4:
     build:
       context: .
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde}
     image: qwen38-w8a8-k100ai-dflash2-tp4:local
     container_name: qwen38-w8a8-k100ai-dflash2-tp4
     network_mode: host
