@@ -30,7 +30,7 @@
 | Profile | GPU | 正式验收范围 | 代表性能 | 适合谁 | 状态 |
 |---|---:|---:|---|---|---|
 | **[TP1 Agent128K](TP1.md)** | 1× K100AI | 512 → 128K | 16K **47.87 tok/s** · 64K **31.23** · 128K **32.88** | 卡少、单用户 Agent、优先省 GPU | **ACCEPTED** |
-| **[TP4 Agent256K](TP4.md)** | 4× K100AI | 512 → 257.9K | 16K **108.85 tok/s** · 64K **66.10** · 128K **68.59** | 长上下文、高 decode、长期主服务 | **STABLE** |
+| **[TP4 Agent256K](TP4.md)** | 4× K100AI | 512 → 257.9K | 16K **113.10 tok/s** · 64K **102.21** · 128K **88.68** · 257.9K **72.49** | 长上下文、高 decode、长期主服务 | **CHAMPION** |
 
 > TP1 和 TP4 的正式十档范围并不完全相同，因此不要直接拿“十档平均值”做横向排名。更有意义的是比较相同上下文下的 TTFT / decode，以及你的 GPU 成本。
 
@@ -44,7 +44,9 @@
 
 直接看 **[TP4 Agent256K](TP4.md)**。
 
-这是当前公开打包最成熟的版本，支持 262144 context、DFlash2、Radix Cache、TP4 native kernel 与长上下文 U036 路径。
+这是当前公开打包最成熟的版本，支持 262144 context、DFlash2、Radix Cache、TP4 native kernel 与 longctx-v8 分段 prefill。正式 cold output256 十档已经完整通过；128K 为 **49.45s TTFT / 88.68 tok/s**，257.9K 为 **132.25s / 72.49 tok/s**，并通过 128K needle、257900-token exact retrieval、三轮 257.9K 确定性与 restart/OOM 门禁。
+
+![TP4 longctx-v8 formal 10-level](assets/tp4_longctx_v8_10level.png)
 
 离线算力服务器见：**[TP4 离线部署教程](TP4_OFFLINE_DEPLOY.md)**。
 
@@ -143,7 +145,7 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 - **release tag**：只在 profile 通过正式 quality + 十档 + stability 门后发布；
 - 实验分支和 microbench 不作为 README 的“冠军数据”。
 
-当前 TP4 已有完整公开打包版本；TP1 已通过 Agent128K acceptance，正在做最终公共部署包收尾。
+当前 TP4 longctx-v8 已完成完整公开打包、冷十档、长上下文质量和稳定性门禁，并作为当前 `main` 推荐 Champion；TP1 已通过 Agent128K acceptance，继续作为单卡 profile 维护。
 
 ---
 

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "classification": "TP4 qtail exact-257900 raw-completion retrieval quality gate; timing non-authoritative",
+  "status": "complete",
+  "port": 8068,
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP4-Agent128K",
+  "targetTokens": 257900,
+  "position": 0.95,
+  "secret": "Q38QTAIL8K100AI",
+  "canonicalPromptSha256": "5056abc0dde05ba35ae8194172b173bcb48228585ef0d82f08a6a7f9edacd761",
+  "modifiedPromptSha256": null,
+  "modifiedTokenIdsSha256": "44da9ddcccf346a9b7c024727e12726b9c6b13b18974c6a5ab6a1ff0370dc3c2",
+  "markerTokenCount": 27,
+  "suffixTokenCount": 35,
+  "cutTokenIndex": 245005,
+  "http": 200,
+  "usage": {
+    "prompt_tokens": 257900,
+    "completion_tokens": 13
+  },
+  "text": "Q38QTAIL8K100AI",
+  "textSha256": "083c663d5c3df3b8fa660cb3b011384cdb791df05982a88f0dfaab4defea6dcc",
+  "pass": true,
+  "wallS_non_authority": 131.71359178400598
+}

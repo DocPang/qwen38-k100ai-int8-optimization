@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "contract": "tp4_longctx_v8_qtail8_fixed_formal2_257900_o256",
+  "endpoint": "/v1/completions",
+  "mode": "DFLASH2",
+  "decode_tps_definition": "(completion_tokens-1)/从首个流式 token 到请求结束的 wall time",
+  "port": 8068,
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP4-Agent128K",
+  "output_tokens": 256,
+  "prompt_corpus_in": "results/canonical_prompts_v2_20260820.json",
+  "prompt_corpus_out": null,
+  "status": "complete",
+  "rows": [
+    {
+      "requested_prompt_tokens": 257900,
+      "prompt_tokens": 257900,
+      "completion_tokens": 256,
+      "mode": "DFLASH2",
+      "prompt_sha256": "5056abc0dde05ba35ae8194172b173bcb48228585ef0d82f08a6a7f9edacd761",
+      "prompt_token_ids_sha256": "69983e808ef9722c7768cd9e7043a57bba12983e19779ad1faf5c20f66afa91d",
+      "prompt_utf8_bytes": 1740065,
+      "prompt_source": "canonical-corpus-trusted-metadata",
+      "prompt_token_ids_live_verified": false,
+      "retokenized_output_tokens": 256,
+      "retokenized_output_token_ids_sha256": "d2581314fe9b3185bac5f36ca109e12a2aa79df0c1cf0eb263d408202186ac82",
+      "ttft_s": 132.3013684710022,
+      "prefill_proxy_tps": 1949.3373574327502,
+      "decode_tps": 72.52365711793702,
+      "total_s": 135.81746253097663,
+      "sha256": "25caec314f8350761b27ceb0cd823059faec3f2803b1f6037911107252da1f9a",
+      "max_running": 1.0,
+      "max_waiting": 0.0,
+      "metrics_supported": true,
+      "contaminated": false,
+      "drafted": 0.0,
+      "accepted": 0.0,
+      "accept_rate": null,
+      "mean_accept_len": null
+    }
+  ]
+}

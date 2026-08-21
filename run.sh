@@ -12,8 +12,9 @@ set +a
 IMAGE_TAG=${IMAGE_TAG:-qwen38-w8a8-k100ai-dflash2-tp4:local}
 CONTAINER_NAME=${CONTAINER_NAME:-qwen38-w8a8-k100ai-dflash2-tp4}
 PORT=${PORT:-8068}
-U036_PROFILE=${U036_PROFILE:-legacy_bm64_w8}
-U036_SPLIT_KV=${U036_SPLIT_KV:-1}
+U036_PROFILE=${U036_PROFILE:-ranklocal_bm64_w4_preloadv}
+U036_SPLIT_KV=${U036_SPLIT_KV:-4}
+CUSTOM_AR=${CUSTOM_AR:-1}
 
 for v in TARGET_MODEL DRAFT_MODEL RENDER0 RENDER1 RENDER2 RENDER3; do
   [[ -n "${!v:-}" ]] || { echo "ERROR: $v is not set in $ENV_FILE" >&2; exit 3; }
@@ -52,6 +53,7 @@ args=(
   -e "PORT=$PORT"
   -e "SGLANG_Q38_TP4_U036_PROFILE=$U036_PROFILE"
   -e "SGLANG_Q38_TP4_U036_SPLIT_KV=$U036_SPLIT_KV"
+  -e "CUSTOM_AR=$CUSTOM_AR"
   "$IMAGE_TAG"
 )
 
