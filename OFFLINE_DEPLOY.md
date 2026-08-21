@@ -8,7 +8,7 @@
 
 这篇只讲最简单的离线流程：
 
-**联网机器下载 → 搬到算力服务器 → `docker load` → 安全编译用户态 HIP 扩展 → `docker build` → `docker run`。**
+**联网机器下载 → 搬到算力服务器 → `docker load` → 直接构建薄优化镜像 → `docker run`。**
 
 不要求离线服务器安装 Git、Hugging Face CLI 或 Docker Compose。
 
@@ -119,7 +119,7 @@ docker load -i sourcefind-sglang0512-k100ai-20260620.tar
 docker image inspect qwen38-sourcefind-base:20260620 >/dev/null && echo OK
 ```
 
-然后在离线服务器**本机**重新编译 4 个 K100AI 用户态 HIP 扩展，并构建薄优化镜像：
+然后直接使用仓库内已经验证过的 4 个预编译用户态 HIP 扩展构建薄优化镜像：
 
 ```bash
 cd /data/qwen38-offline/qwen38-w8a8-k100ai-dflash2-tp4
@@ -127,17 +127,15 @@ cd /data/qwen38-offline/qwen38-w8a8-k100ai-dflash2-tp4
 BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 ```
 
-这里的“编译”不是编译或安装宿主机驱动。`build_image.sh` 会启动一个临时 SourceFind 容器，固定 `PYTORCH_ROCM_ARCH=gfx928`，并且：
+默认 `build_image.sh` 不会启动编译容器，只会校验仓库内 `native_ext/prebuilt/` 的 4 个已验证 `.so`，随后使用本地 SourceFind 底座构建薄优化镜像。
 
-- `--network none`；
-- **不映射 `/dev/kfd`**；
-- **不映射任何 `renderD*`**；
-- `/opt/hyhal` 只读挂载；
-- 只把 4 个 `.so` 写到仓库本地 `.build/native/`；
-- 四个产物少任何一个都直接失败；
-- 随后的 Dockerfile 只接受这四个刚编译出的 `.so`。
+如果你使用的不是本文锁定的 SourceFind/DTK 组合，或者明确希望从源码重编，可选执行：
 
-因此这一步不会占用 GPU，也不会卸载、重载或替换宿主机 `amdgpu` 驱动。
+```bash
+BASE_IMAGE=qwen38-sourcefind-base:20260620 REBUILD_NATIVE=1 bash build_image.sh
+```
+
+这个备用编译容器无网络、不映射 `/dev/kfd` 或 `renderD*`、不使用 privileged，只读挂载 `/opt/hyhal`。它编译的是用户态 `.so`，不会安装、卸载、重载或替换宿主机 `amdgpu` 驱动。
 
 这个流程使用刚才 `docker load` 的**本地基础镜像**，离线服务器不需要访问 SourceFind Harbor。我们已经在 K100AI 验证机的 Docker 18.09 环境实际完成了“四个源码编译 → Docker 镜像构建 → 无 GPU PyBind 动态加载”验证。
 
@@ -145,63 +143,42 @@ BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 
 ## 4. 启动
 
-下面假设模型放在：
-
-```text
-/data/qwen38-offline/Qwen3.8-27B-SmoothQuant-W8A8-INT8
-/data/qwen38-offline/Qwen3.8-27B-DFlash2
-```
-
-并假设你的 4 张卡对应：
-
-```text
-/dev/dri/renderD132
-/dev/dri/renderD133
-/dev/dri/renderD134
-/dev/dri/renderD135
-```
-
-**这 4 个设备号只是我们的验证机示例，必须换成你自己服务器的实际值。**
-
-启动：
+复制配置模板：
 
 ```bash
-docker run -d \
-  --name qwen38-w8a8-dflash2-tp4 \
-  --network host \
-  --ipc host \
-  --restart unless-stopped \
-  --security-opt label=disable \
-  --device /dev/kfd:/dev/kfd \
-  --device /dev/dri/renderD132:/dev/dri/renderD132 \
-  --device /dev/dri/renderD133:/dev/dri/renderD133 \
-  --device /dev/dri/renderD134:/dev/dri/renderD134 \
-  --device /dev/dri/renderD135:/dev/dri/renderD135 \
-  -v /opt/hyhal:/opt/hyhal:ro \
-  -v /data/qwen38-offline/Qwen3.8-27B-SmoothQuant-W8A8-INT8:/models/target:ro \
-  -v /data/qwen38-offline/Qwen3.8-27B-DFlash2:/models/draft:ro \
-  -e HIP_VISIBLE_DEVICES=0,1,2,3 \
-  -e PORT=8068 \
-  qwen38-w8a8-k100ai-dflash2-tp4:local
+cd /data/qwen38-offline/qwen38-w8a8-k100ai-dflash2-tp4
+cp .env.example .env
 ```
 
-默认已经使用完整十档验证过的稳定 profile，不需要再填优化参数。
+编辑 `.env`，至少改成你自己的模型路径和 4 个 renderD：
+
+```text
+TARGET_MODEL=/data/qwen38-offline/Qwen3.8-27B-SmoothQuant-W8A8-INT8
+DRAFT_MODEL=/data/qwen38-offline/Qwen3.8-27B-DFlash2
+RENDER0=/dev/dri/renderDxxx
+RENDER1=/dev/dri/renderDxxx
+RENDER2=/dev/dri/renderDxxx
+RENDER3=/dev/dri/renderDxxx
+PORT=8068
+```
+
+`renderDxxx` 必须换成自己服务器的实际设备号，不能照抄验证机。
+
+然后只需要：
+
+```bash
+bash run.sh
+```
+
+`run.sh` 会先检查模型目录、`/dev/kfd`、4 个 renderD、`/opt/hyhal` 和本地优化镜像。检查不通过就直接停止；如果同名容器已经存在，也会拒绝自动删除或覆盖。
 
 看日志：
 
 ```bash
-docker logs -f --tail=100 qwen38-w8a8-dflash2-tp4
+docker logs -f --tail=100 qwen38-w8a8-k100ai-dflash2-tp4
 ```
 
-看状态：
-
-```bash
-docker ps | grep qwen38-w8a8-dflash2-tp4
-```
-
-服务默认端口：`8068`。
-
-如果启动失败，**先检查模型路径、4 个 `renderD*` 和 `/opt/hyhal`，不要第一反应去改宿主机驱动。**
+默认端口是 `8068`。长期运行的只有这一个模型服务容器。
 
 ---
 
@@ -215,7 +192,7 @@ docker ps | grep qwen38-w8a8-dflash2-tp4
 BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 ```
 
-然后删除旧容器、按上面的 `docker run` 重新启动即可。
+更新现有服务时，请先人工确认当前容器是否可以停止，再手动 `docker stop` / `docker rm` 旧容器，最后重新执行 `bash run.sh`。脚本不会替你自动删除正在使用的容器。
 
 ---
 
@@ -223,7 +200,7 @@ BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 
 ```text
 联网机：拉官方镜像 + 两份权重 + GitHub 仓库 → 搬到离线服务器
-离线机：docker load → 无 GPU 编译 native → docker build → docker run
+离线机：docker load → bash build_image.sh → bash run.sh
 ```
 
 **不需要服务器联网，不需要 Docker Compose，也不需要群友自己手工打 20 层补丁。**

@@ -6,9 +6,9 @@
 >
 > **请先备份宿主机现有配置。不要为了照抄本项目而直接覆盖驱动、修改 GRUB/IOMMU/ACS、执行未知 `setpci` 命令或在生产服务器上盲目试验。** 本仓库只在 Docker/用户态叠加优化，不会自动修改宿主机驱动。
 >
-> **特别说明：本项目不包含、不编译、也不安装 `amdgpu.ko`、DKMS 或任何宿主机 GPU 内核驱动。** 仓库里的 4 个 `.hip` 是 K100AI/gfx928 的**用户态 PyTorch/HIP 扩展**。它们会在固定 SourceFind 镜像内编译成 `.so`，编译容器明确不映射 `/dev/kfd` 和 `renderD*`，只读挂载 `/opt/hyhal`。如果现有 `hy-smi`、`/opt/hyhal` 或官方容器环境本身不正常，请停止部署，不要让本项目替你“修驱动”。
+> **特别说明：本项目不包含、不编译、也不安装 `amdgpu.ko`、DKMS 或任何宿主机 GPU 内核驱动。** 默认直接使用仓库内已验证的 4 个 K100AI/gfx928 **用户态 PyTorch/HIP `.so`**；对应 `.hip` 源码全部公开。只有用户主动选择源码重编时才会启动临时编译容器，而且该容器不映射 `/dev/kfd` 或 `renderD*`、不使用 privileged、无网络、只读挂载 `/opt/hyhal`。如果现有 `hy-smi`、`/opt/hyhal` 或官方容器环境本身不正常，请停止部署，不要让本项目替你“修驱动”。
 
-> 版本：v0.1.2 · 2026-08-21
+> 版本：v0.1.3 · 2026-08-21
 > 状态：稳定十档配置已验证；最新 U036 split4 长上下文 profile 已包含但默认不开启。
 
 ## 摘要
@@ -29,7 +29,7 @@
 - PCIe / ACS / IOMMU / P2P 环境排查与验证；
 - 128K Agent prefix / Radix Cache 使用方式的实际验证。
 
-普通用户**不需要手工打 SGLang 补丁**。当前 runtime/SGLang patchset 只有约 51KB；4 个 K100AI native kernel 的 `.hip` 源码直接公开在 `native_ext/`。构建时先运行 `build_native.sh`，它使用固定 SourceFind 镜像、`--network none`、不映射任何 GPU 设备，只读挂载 `/opt/hyhal`，在本机重新编译 4 个用户态 `.so`；随后 Dockerfile 才把这些本机构建产物烘进派生镜像。宿主机驱动、DTK、ACS、PCIe/IOMMU 都不会自动修改。
+普通用户**不需要手工打 SGLang 补丁，也不需要先编译 native 扩展**。仓库直接提供 4 个已经在固定 SourceFind 镜像 / DTK / gfx928 环境验证过的用户态 `.so`，并附 SHA256；`bash build_image.sh` 默认校验这些二进制后直接构建派生镜像。4 个 `.hip` 源码和 `build_native.sh` 仍然公开，只有在你主动设置 `REBUILD_NATIVE=1` 时才会启动一次性、无 GPU 权限的编译容器重新构建。宿主机驱动、DTK、ACS、PCIe/IOMMU 都不会自动修改。
 
 ---
 
@@ -55,18 +55,16 @@ hf download z-lab/Qwen3.8-27B-DFlash2 \
 cp .env.example .env
 # 编辑 .env：只改模型路径和本机 4 个 renderD 设备号
 
-# 阶段1：无 GPU 编译 native 扩展 + 构建本地优化镜像
+# 1. 默认直接使用仓库内已经验证的预编译 native 扩展构建镜像
 bash build_image.sh
 
-# 阶段2：真正映射 GPU 并启动服务（需要 Docker Compose 时）
-docker compose up -d
+# 2. 启动唯一的长期模型容器
+bash run.sh
 ```
 
-`build_image.sh` 的编译阶段**不接触 GPU 设备**：没有 `/dev/kfd`、没有 `renderD*`、没有 `--privileged`、没有网络，只读挂载 `/opt/hyhal`。只有第二阶段启动服务时才按 `.env` 映射 4 张 K100AI。
+默认情况下 `build_image.sh` **不会启动编译容器**，只会校验 `native_ext/PREBUILT_SHA256SUMS` 并执行 Docker build。`run.sh` 会先检查模型路径、`/dev/kfd`、4 个 `renderD*`、`/opt/hyhal` 和本地镜像；任何一项不对就停止，也不会自动删除或覆盖已有同名容器。真正长期运行的只有这一个模型服务容器。若你主动执行 `REBUILD_NATIVE=1 bash build_image.sh`，才会临时启动一次无 GPU、无网络、非 privileged 的编译容器；编译完成后自动删除。
 
-构建流程为：
-
-`复用/拉取固定 SourceFind 基础镜像 → 无 GPU 编译 4 个 gfx928 用户态 HIP 扩展 → 应用 K100AI/SGLang/DFlash2 patch → 将新编译 .so 烘入镜像 → 启动 TP4 服务`。
+默认构建流程为：`复用/拉取固定 SourceFind 基础镜像 → 校验仓库内 4 个预编译 gfx928 用户态 HIP 扩展 → 应用 K100AI/SGLang/DFlash2 patch → 生成本地薄优化镜像`。随后 `run.sh` 才会映射 GPU 并启动唯一的 TP4 服务容器。
 
 默认端口为 `8068`，默认使用完整十档验证过的稳定 profile。基础镜像约 31.7GB，本仓库自身仍然很小；后续更新补丁时 Docker 会复用已有基础层，不需要重新下载 31.7GB。
 
@@ -378,7 +376,7 @@ Qwen3.8-27B 是 64 层 hybrid 结构，其中 48 层 linear attention、16 层 f
 qwen38-k100ai-patchset.tar.gz
 ```
 
-当前 v0.1.2 SHA256：
+当前 v0.1.3 patchset SHA256：
 
 ```text
 11bedc166468390c68810dd6b5eed04a0cdc37b812daad0f5c329a051e919a1b
@@ -448,7 +446,7 @@ sglang_dflash2_k100ai.patch
 | `native_ext/build_native.py` | 用 SourceFind 镜像内 PyTorch/hipcc 编译上述 4 个扩展 |
 | `build_native.sh` | 最小权限编译 wrapper：无网络、无 GPU 设备、只读 `/opt/hyhal` |
 
-仓库**不再提交预编译 `.so`**。`build_native.sh` 会把产物写入被 Git 忽略的 `.build/native/`，Dockerfile 只接受这 4 个现场构建的 `.so`；少任何一个都会 build 失败。
+仓库默认提交 4 个已验证的预编译 `.so`，位于 `native_ext/prebuilt/`，其 SHA256 记录在 `native_ext/PREBUILT_SHA256SUMS`。Dockerfile 默认使用这些文件。`build_native.sh` 作为备用，会把重新编译的产物写到 `.build/native/`；Dockerfile 会在构建时用这些本机构建结果覆盖预编译版本。
 
 再次强调：这些 `.so` 是 PyTorch 可加载的**用户态扩展**，不是 `amdgpu.ko`，不会通过 DKMS 安装，不会替换宿主机驱动。
 
@@ -471,24 +469,27 @@ sglang_dflash2_k100ai.patch
 FROM harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 ```
 
-作为固定底座。构建被故意拆成两个阶段：
+作为固定底座。默认构建流程很简单：
 
-1. `build_native.sh` 在临时 SourceFind 容器中，从公开的 4 个 `.hip` 源码编译用户态扩展；该容器使用 `--network none`，不映射 `/dev/kfd` 或任何 `renderD*`，只读挂载 `/opt/hyhal`；
+1. 校验 `native_ext/prebuilt/` 中 4 个已验证用户态 `.so` 的 SHA256；
 2. `docker build` 对镜像内原始 SGLang 应用 `sglang_dflash2_k100ai.patch`；
 3. 放入 gfx928 correctness、W8A8、TP4、U036、BA24 等 runtime patch；
-4. 把刚刚编译的 4 个 `.so` 放入固定 runtime 路径，并逐个检查非空；
-5. 保存 U036 所需的 SourceFind Triton GQA 原始实现；
-6. 安装 DFlash2 TP4 q=8 verifier 组合层；
-7. 对关键 Python 文件做 build-time syntax gate；
-8. 设置运行时入口。
+4. 把 4 个预编译 `.so` 放入固定 runtime 路径并逐个检查；
+5. 保存 U036 所需的 SourceFind Triton GQA 原始实现并设置运行时入口。
 
-推荐直接执行：
+普通用户直接执行：
 
 ```bash
 bash build_image.sh
 ```
 
-它只负责“安全编译 + 构建镜像”，**不会启动模型，也不会映射 GPU**。镜像构建成功后，再使用 Compose 或离线教程中的 `docker run` 启动。
+这一步默认**不会启动编译容器，也不会映射 GPU**。如果你明确希望从源码重编，再执行：
+
+```bash
+REBUILD_NATIVE=1 bash build_image.sh
+```
+
+重编属于可选备用路径，不是正常部署前置步骤。
 
 ## 6.1 `.env` 需要修改什么
 
@@ -689,7 +690,7 @@ SGLANG_Q38_TP4_U036_SPLIT_KV=4
 
 1. 本项目针对 K100AI / gfx928 和 SourceFind SGLang 0.5.12 做了大量 shape-specific 优化，不保证直接适用于其他 GPU。
 2. 厂商 Harbor 镜像的获取权限可能因用户环境不同。
-3. 4 个 native `.so` 必须通过本仓库 `build_native.sh` 在部署机环境中重新编译；如果编译失败，请停止，不要复制别的机器产物硬跑。
+3. 默认预编译 `.so` 只针对本文锁定的 SourceFind 镜像 / DTK / gfx928 组合验证；如果你使用不同底座、不同 PyTorch/DTK ABI，建议执行 `REBUILD_NATIVE=1 bash build_image.sh` 重新编译，不要强行混用。
 4. 宿主机驱动、DTK、ACS、IOMMU、renderD 映射不要盲目照抄测试机；本项目不会替你安装或修复这些系统组件。
 5. DFlash2 提高 decode，但冷长 prompt 仍需生成 draft-side KV，因此它不是免费的 TTFT 加速器。
 6. 最新 split4 长上下文优化还在收尾，正式发布时可能替换本文稳定十档中的 U036 配置。

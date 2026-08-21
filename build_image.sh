@@ -10,13 +10,18 @@ fi
 BASE_IMAGE=${BASE_IMAGE:-$DEFAULT_BASE}
 IMAGE_TAG=${IMAGE_TAG:-qwen38-w8a8-k100ai-dflash2-tp4:local}
 
-export BASE_IMAGE
-"$ROOT/build_native.sh"
+cd "$ROOT"
+if [[ "${REBUILD_NATIVE:-0}" == "1" ]]; then
+  echo "[native] REBUILD_NATIVE=1: rebuilding four userspace HIP extensions from source"
+  "$ROOT/build_native.sh"
+else
+  echo "[native] using validated prebuilt userspace extensions"
+  sha256sum -c native_ext/PREBUILT_SHA256SUMS
+fi
 
 echo "[image-build] building $IMAGE_TAG from $BASE_IMAGE"
 docker build \
   --build-arg BASE_IMAGE="$BASE_IMAGE" \
   -t "$IMAGE_TAG" \
   "$ROOT"
-
 echo "[image-build] PASS: $IMAGE_TAG"
