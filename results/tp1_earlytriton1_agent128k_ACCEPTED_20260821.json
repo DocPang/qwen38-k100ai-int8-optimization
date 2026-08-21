@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "status": "ACCEPTED",
+  "classification": "TP1 DFlash2 Early-Triton N=1 Agent128K formal acceptance",
+  "acceptedAt": "2026-08-21",
+  "scope": "TP1 Agent128K context-length 147456",
+  "config": {
+    "earlyTritonLayers": [
+      7,
+      15
+    ],
+    "earlyTritonRounds": 1,
+    "draftTokens": 8,
+    "kvCacheDtype": "bfloat16",
+    "radixCache": true,
+    "cudaGraphBs": 1
+  },
+  "quality": {
+    "arithmetic20": {
+      "correct": 18,
+      "total": 20,
+      "referenceRelativePass": true,
+      "historicalExpectedFailures": [
+        8,
+        17
+      ]
+    },
+    "case15": {
+      "answer": 303,
+      "expected": 303,
+      "pass": true
+    },
+    "needle64k": true,
+    "needle128k": true
+  },
+  "performance": {
+    "rows": [
+      {
+        "prompt_tokens": 512,
+        "ttft_s": 0.6107076649786904,
+        "decode_tps": 23.483433347365388,
+        "total_s": 11.469426499999827,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 2048,
+        "ttft_s": 2.7698161409934983,
+        "decode_tps": 28.149882597121927,
+        "total_s": 11.828468485997291,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 4096,
+        "ttft_s": 8.107684305985458,
+        "decode_tps": 24.960977270839013,
+        "total_s": 18.323630469996715,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 8192,
+        "ttft_s": 8.492255622986704,
+        "decode_tps": 26.88586892877904,
+        "total_s": 17.97679192997748,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 12288,
+        "ttft_s": 13.902438031014754,
+        "decode_tps": 27.270425517559097,
+        "total_s": 23.253227216016967,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 16384,
+        "ttft_s": 16.53758587699849,
+        "decode_tps": 47.87404101446693,
+        "total_s": 21.86406332900515,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 32768,
+        "ttft_s": 35.57782937498996,
+        "decode_tps": 27.343754030777667,
+        "total_s": 44.903542285988806,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 65536,
+        "ttft_s": 85.13050978101091,
+        "decode_tps": 31.23311607405256,
+        "total_s": 93.29492089501582,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 98304,
+        "ttft_s": 150.23132376701687,
+        "decode_tps": 21.045077078233625,
+        "total_s": 162.34817176201614,
+        "contaminated": false
+      },
+      {
+        "prompt_tokens": 131072,
+        "ttft_s": 231.12688203601283,
+        "decode_tps": 32.876452818366644,
+        "total_s": 238.88319326000055,
+        "contaminated": false
+      }
+    ],
+    "decodeMean": 29.11230286775619,
+    "decodeMedian": 27.307089774168382
+  },
+  "stability": {
+    "tenLevelComplete": true,
+    "allUncontaminated": true,
+    "healthAtAcceptance": 200,
+    "oomKilled": false,
+    "restartCount": 0
+  },
+  "artifacts": {
+    "tenLevel": "/data/qwen38-dflash2-k100ai/results/tp1_earlytriton1_agent128k_10level_20260821.json",
+    "arithmetic20": "/data/qwen38-dflash2-k100ai/results/tp1_earlytriton1_arithmetic20_20260821.json",
+    "case15": "/data/qwen38-dflash2-k100ai/results/tp1_earlytriton1_case15_20260821.json",
+    "needle64k": "/data/qwen38-dflash2-k100ai/results/tp1_earlytriton1_needle_64k_20260821.json",
+    "needle128k": "/data/qwen38-dflash2-k100ai/results/tp1_earlytriton1_needle_128k_20260821.json",
+    "report": "/data/qwen38-dflash2-k100ai/TP1_EARLYTRITON1_ACCEPTANCE_20260821.md"
+  },
+  "sha256": {
+    "patch": "0c368c01e2ebdf2a2f6daf8bc5ebfa22bcacb7e7e270d0c87966367da97f85fe",
+    "baseLauncher": "c31114cd40b06cd7f2cb3a1910b9b6e7c893443807c0d439facb0baaf502799b",
+    "fixedLauncher": "bfeef4fda73b43d3fad5752f09437904032739c31d8a45a4a38fb23b382be0dd"
+  }
+}

@@ -88,6 +88,19 @@ TP1 正式 acceptance 额外使用 **Early-Triton N=1**：
 - decode mean ≈ **29.11 tok/s**；
 - decode median ≈ **27.31 tok/s**。
 
+### 正式验收截图
+
+![TP1 Early-Triton N=1 Agent128K 十档验收](assets/tp1_earlytriton1_agent128k_10level.png)
+
+机器可读原始证据：
+
+- [十档 benchmark JSON](results/tp1_earlytriton1_agent128k_10level_20260821.json)
+- [Arithmetic20 JSON](results/tp1_earlytriton1_arithmetic20_20260821.json)
+- [64K thinking needle JSON](results/tp1_earlytriton1_needle_64k_20260821.json)
+- [128K thinking needle JSON](results/tp1_earlytriton1_needle_128k_20260821.json)
+- [ACCEPTED manifest](results/tp1_earlytriton1_agent128k_ACCEPTED_20260821.json)
+- [证据 SHA256](results/TP1_ACCEPTANCE_SHA256.txt)
+
 > 512–12K 会支付一次 corrected-Triton 的固定首轮成本，因此不是这个 Profile 的主要优化目标。该版本优先保证 64K/128K Agent correctness 与长期运行稳定性。
 
 ---
@@ -110,7 +123,7 @@ TP4 使用 4 倍 GPU，性能更高是预期结果；TP1 的价值在于**单卡
 
 ## 6. 发布状态
 
-当前正式 acceptance 已完成，公共发布还剩最后一层工作：
+当前正式 acceptance 已完成，**截图、十档、Arithmetic20、64K/128K needle 与 ACCEPTED manifest 已全部公开入库并带 SHA256**。公共部署包还剩最后一层工作：
 
 - 将 TP1 runtime patch 从研究绝对路径整理成可复现 payload；
 - 固定公开 Docker build/run 入口；
