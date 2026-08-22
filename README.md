@@ -40,22 +40,23 @@
 
 > **重要：以下三种方式是替代关系，不是连续步骤。根据你的场景选择其中一种完成即可，不要三种都操作。**
 
-| 方式 | 适合场景 | 是否需要 build | 推荐 |
-|---|---|---:|---|
-| **A. 统一镜像部署** | 有 Docker + K100AI 环境，能直接下载文件 | 否 | ⭐⭐⭐⭐⭐ |
-| **B. 离线迁移部署** | 目标服务器无公网，通过网盘/U盘/内网传输 | 否 | ⭐⭐⭐⭐⭐ |
-| **C. 源码构建部署** | 需要修改 patch、kernel 或审计构建过程 | 是 | ⭐⭐⭐ |
+| 方式 | 说明 | 需要传输的大小 | 是否需要 build | 推荐 |
+|---|---|---:|---:|---|
+| **A. 完整成品镜像** | 直接导入已验收的统一 Docker 镜像，load 即用 | ~5.67 GiB（压缩） | 否 | ⭐⭐⭐⭐⭐ |
+| **B. 官方镜像 + 补丁构建** | 拉取 SourceFind 官方基础镜像，打上小补丁（patchset + 预编译 .so），docker build | 官方镜像 + ~1.3 MB 补丁 | 是（docker build） | ⭐⭐⭐⭐ |
+| **C. 全源码构建** | 同 B，但 native extensions 从源码重新编译 | 官方镜像 + 源码 | 是（docker build + 编译） | ⭐⭐ |
 
-- 普通部署选 **A**（有网）或 **B**（无网），两者使用同一个镜像，只是下载/传输方式不同。
-- 需要改代码或审计构建过程才选 **C**。
+- 普通部署选 **A**（最快）或 **B**（已有官方镜像时最省流量）。
+- 需要修改 patch、kernel 或审计构建过程才选 **C**。
+- 三种方式都支持离线：A 的镜像包和 B/C 的官方镜像都可以先在有网机器下载再拷贝到目标服务器。
 
 ---
 
-### 方式 A：统一镜像部署（推荐，有网环境）
+### 方式 A：完整成品镜像（推荐）
 
-**前提**：目标服务器有 Docker，能访问夸克网盘下载文件。
+**说明**：使用已经验收的 **TP1 / TP4 统一 Docker 运行时镜像**，导入后直接运行，不需要任何 build 步骤。
 
-#### 1. 下载镜像压缩包
+#### 1. 获取镜像压缩包
 
 - 夸克网盘：[Qwen3.8-K100AI-Unified-20260822](https://pan.quark.cn/s/1e9abeef509a?pwd=duZx)
 - 提取码：`duZx`
@@ -63,6 +64,8 @@
 - 大小：约 **5.67 GiB**（压缩后）/ **31.86 GiB**（Docker 镜像）
 - Docker tag：`qwen38-k100ai-int8:unified-20260822`
 - SHA256：`e3e2874939b540a935191939fe6309e583a7bf1808f6341f07aba447740d7557`
+
+> 离线环境：先在有网机器下载，再通过 rsync / U盘 / scp 拷贝到目标服务器。
 
 #### 2. 校验完整性
 
@@ -107,6 +110,8 @@ huggingface-cli download z-lab/Qwen3.8-27B-DFlash2 \
   --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
   --local-dir /data/models/Qwen3.8-27B-DFlash2
 ```
+
+> 离线环境：模型权重同样先在有网机器下载再拷贝到目标服务器。
 
 #### 5. 启动服务
 
@@ -173,61 +178,18 @@ curl http://localhost:8068/v1/chat/completions \
 
 ---
 
-### 方式 B：离线迁移部署（无公网环境）
+### 方式 B：官方镜像 + 补丁构建
 
-**前提**：目标服务器无法访问互联网，但可以通过网盘/U盘/内网传输文件。
+**说明**：拉取 SourceFind 官方 K100AI 基础镜像，打上本项目的**小补丁**（runtime patchset + 预编译 native extensions），然后 `docker build`。适合已经有官方镜像、或不想传输 5.67 GiB 完整镜像的场景。
 
-**与方式 A 的区别**：镜像相同，只是下载和传输方式不同。
+**补丁内容**（合计约 1.3 MB）：
 
-#### 1. 在有网络的机器上下载
+| 文件 | 大小 | 内容 |
+|---|---:|---|
+| `qwen38-k100ai-patchset.tar.gz` | 57 KB | runtime patches（sitecustomize、repair、SGLang overlay） |
+| `native_ext/prebuilt/*.so` | ~1.2 MB | 4 个预编译 gfx928 用户态 HIP 扩展 |
 
-从夸克网盘下载 `qwen38-k100ai-int8-unified-20260822.docker.tar.zst`（约 5.67 GiB）。
-
-#### 2. 校验
-
-```bash
-echo "e3e2874939b540a935191939fe6309e583a7bf1808f6341f07aba447740d7557  qwen38-k100ai-int8-unified-20260822.docker.tar.zst" | sha256sum -c -
-zstd -t qwen38-k100ai-int8-unified-20260822.docker.tar.zst
-```
-
-#### 3. 传输到目标服务器
-
-```bash
-# 方式一：rsync（内网，支持断点续传）
-rsync -avP --partial qwen38-k100ai-int8-unified-20260822.docker.tar.zst user@target:/data/
-
-# 方式二：U盘/移动硬盘
-# 直接拷贝文件到目标服务器
-
-# 方式三：scp
-scp qwen38-k100ai-int8-unified-20260822.docker.tar.zst user@target:/data/
-```
-
-#### 4. 在目标服务器上导入
-
-```bash
-cd /data
-zstd -dc qwen38-k100ai-int8-unified-20260822.docker.tar.zst | docker load
-docker images | grep qwen38-k100ai-int8
-```
-
-#### 5. 准备模型权重 + 启动
-
-同方式 A 的第 4、5、6 步。模型权重（target + draft，合计数十 GB，以实际模型目录为准）也需要离线传输到目标服务器。
-
-> **注意**：整个镜像导入过程不需要访问互联网。但模型权重仍需单独准备并挂载。
-
----
-
-### 方式 C：源码构建部署
-
-**前提**：需要修改 patch、kernel 或审计构建过程。普通部署不需要走这条路。
-
-> 根目录的 `Dockerfile / build_image.sh / run.sh` 是 **TP4 Stable Profile** 源码路线。
-
-#### 0. 上游基础镜像
-
-源码构建基于 SourceFind 官方 K100AI 基础镜像（Dockerfile 中已固定 digest）：
+#### 1. 获取官方基础镜像
 
 ```text
 harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
@@ -235,17 +197,25 @@ harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0ea5813
 
 - 该镜像包含 SourceFind SGLang 0.5.12 / DTK 26.04 运行环境；
 - 需要能访问 `harbor.sourcefind.cn:5443`（海光内网/授权环境）；
-- 离线环境可先在有网机器 `docker pull` 后导出迁移，或在 `.env` 中设置 `BASE_IMAGE` 指向本地已导入的 tag。
+- 离线环境：先在有网机器 `docker pull` 后 `docker save` 导出，拷贝到目标服务器 `docker load`，然后在 `.env` 中设置 `BASE_IMAGE` 指向本地 tag。
 
-#### 1. 准备模型
+#### 2. 获取本项目仓库
 
-同方式 A 第 4 步（target / draft 下载地址与 revision 见该节）。
+```bash
+# 在线
+git clone https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
+cd qwen38-k100ai-int8-optimization
 
-#### 2. 配置环境
+# 离线：在有网机器 clone 后打包拷贝
+# tar czf qwen38-k100ai-int8-optimization.tar.gz qwen38-k100ai-int8-optimization/
+```
+
+#### 3. 配置环境
 
 ```bash
 cp .env.example .env
 # 修改 .env 中的：
+#   BASE_IMAGE=<本地已导入的官方镜像 tag>（离线时必填）
 #   TARGET_MODEL=/path/to/target
 #   DRAFT_MODEL=/path/to/draft
 #   RENDER0=/dev/dri/renderD128
@@ -254,25 +224,45 @@ cp .env.example .env
 #   RENDER3=/dev/dri/renderD131
 ```
 
-#### 3. 构建镜像
+#### 4. 构建镜像
 
 ```bash
-# 使用仓库内已验证的预编译 native extensions（推荐，不启动编译容器）
+bash build_image.sh
+```
+
+构建过程：
+1. 校验 4 个预编译 `.so` 的 SHA256；
+2. 以官方基础镜像为基底 `docker build`；
+3. 解压 patchset 到 `/opt/qwen38-k100ai/`，执行 `install_into_image.sh`；
+4. 拷贝预编译 native extensions 到 `/data/qwen38-27b-k100ai-int8-opt/native_ext/`。
+
+> 构建容器无 GPU 设备、无网络、非 privileged，不修改宿主机驱动。
+
+#### 5. 准备模型 + 启动
+
+同方式 A 的第 4、5、6 步。
+
+---
+
+### 方式 C：全源码构建
+
+**说明**：同方式 B，但 native extensions 从 C++ 源码重新编译（需要 DTK/hyhal 编译环境）。适合需要修改 kernel 源码、审计编译过程、或预编译 `.so` 与你的 DTK 版本不兼容的场景。
+
+#### 与方式 B 的唯一区别
+
+```bash
+# 方式 B：使用预编译 .so（默认）
 bash build_image.sh
 
-# 如果需要从源码重编 native extensions（备用路径）
+# 方式 C：从源码重编 4 个 native extensions
 REBUILD_NATIVE=1 bash build_image.sh
 ```
 
-#### 4. 启动
+`REBUILD_NATIVE=1` 会启动一个临时编译容器（无 GPU、无网络、非 privileged），在官方基础镜像内用 DTK 编译 4 个 HIP `.so`，输出到 `.build/native/`，然后正常 `docker build`。
 
-```bash
-bash run.sh
-```
+> 编译容器不修改宿主机驱动。如果编译失败，回退到方式 B 的预编译 `.so`。
 
-`run.sh` 会自动检查 `.env` 配置、模型目录、GPU 设备，然后启动 Docker 容器。
-
-> 源码构建只是备用路径。临时编译容器无 GPU 设备、无网络、非 privileged，不修改宿主机驱动。
+其余步骤（获取官方镜像、配置 .env、准备模型、启动、验证）同方式 B。
 
 ---
 
