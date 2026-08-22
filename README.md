@@ -34,6 +34,23 @@
 
 > TP1 和 TP4 的正式十档范围并不完全相同，因此不要直接拿“十档平均值”做横向排名。更有意义的是比较相同上下文下的 TTFT / decode，以及你的 GPU 成本。
 
+### 完整统一镜像（推荐）
+
+如果不想重新构建 30GB 级基础镜像，可以直接使用已经验收的 **TP1 / TP4 统一 Docker 运行时镜像**：
+
+- 夸克网盘：[Qwen3.8-K100AI-Unified-20260822](https://pan.quark.cn/s/1e9abeef509a?pwd=duZx)
+- 提取码：`duZx`
+- 文件：`qwen38-k100ai-int8-unified-20260822.docker.tar.zst`
+- 压缩后：约 **5.67 GiB**
+- Docker tag：`qwen38-k100ai-int8:unified-20260822`
+- SHA256：`e3e2874939b540a935191939fe6309e583a7bf1808f6341f07aba447740d7557`
+
+```bash
+zstd -dc qwen38-k100ai-int8-unified-20260822.docker.tar.zst | docker load
+```
+
+同一只镜像通过 `PROFILE=tp1` / `PROFILE=tp4` 切换单卡与四卡运行参数。模型权重仍采用外部挂载，不重复塞进镜像。完整校验、profile 参数和注意事项见 **[full_images/README.md](full_images/README.md)**。
+
 ### 我只有 1 张 K100AI
 
 看 **[TP1 Agent128K](TP1.md)**。
@@ -52,9 +69,9 @@
 
 ---
 
-## 当前最简单的 TP4 部署
+## 源码构建 TP4 Stable Profile
 
-> 当前仓库根目录的 `Dockerfile / build_image.sh / run.sh` 对应已经完整打包验证的 **TP4 Stable Profile**。TP1 的公开部署包会在单卡最终冻结后并入同一套 profile 入口；目前先不要把 TP4 脚本改成 TP1 参数硬跑。
+> 根目录的 `Dockerfile / build_image.sh / run.sh` 继续保留为可审计、可重建的 **TP4 Stable Profile** 源码路线。若只是部署，优先使用上面的统一预构建镜像；若需要自行重建、修改 patch 或 native kernel，再使用本节。TP1 / TP4 的统一预构建入口见 `full_images/`。
 
 先准备两份模型：
 
@@ -146,6 +163,20 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 - 实验分支和 microbench 不作为 README 的“冠军数据”。
 
 当前 TP4 longctx-v8 已完成完整公开打包、冷十档、长上下文质量和稳定性门禁，并作为当前 `main` 推荐 Champion；TP1 已通过 Agent128K acceptance，继续作为单卡 profile 维护。
+
+---
+
+## 版本记录
+
+| 版本 | 日期 | 主要更新 |
+|---|---|---|
+| **v1.0.1** | 2026-08-22 | 发布 TP1 / TP4 **统一完整 Docker 镜像**；`PROFILE=tp1\|tp4` 切换；增加夸克网盘直下与 SHA256；TP1 真机 smoke 通过；统一镜像纳入 DFlash2 sampling 防崩保护。 |
+| **v1.0.0** | 2026-08-21 | TP4 longctx-v8 正式 Champion：128K 49.45s / 88.68 tok/s，257.9K 132.25s / 72.49 tok/s；完成 cold 十档、质量与稳定性门禁。 |
+| **v0.2.0** | 2026-08-21 | 仓库重构为统一 K100AI INT8/W8A8 优化项目，TP1 / TP4 作为 profile 维护。 |
+| **v0.1.3** | 2026-08-21 | 默认使用已验证的预编译 K100AI 用户态 native extensions，源码重编改为可选路径。 |
+| **v0.1.2** | 2026-08-21 | 增加安全的 K100AI native extension 源码构建流程，不修改宿主机驱动。 |
+| **v0.1.1** | 2026-08-21 | 增加离线算力服务器部署说明。 |
+| **v0.1.0** | 2026-08-21 | 首个公开版本。 |
 
 ---
 
