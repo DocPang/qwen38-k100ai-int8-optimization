@@ -346,3 +346,7 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 ## License / third-party notice
 
 项目自身代码见 [LICENSE](LICENSE)，第三方来源与许可说明见 [NOTICE.md](NOTICE.md)。
+
+---
+
+本说明由 Qwen3.8-27B 生成。
