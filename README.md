@@ -91,10 +91,22 @@ docker images | grep qwen38-k100ai-int8
 
 镜像**不包含模型权重**（避免重复传输几十 GB）。需要单独准备并挂载：
 
-| 挂载路径 | 内容 | 来源 |
-|---|---|---|
-| `/models/target` | Qwen3.8-27B SmoothQuant W8A8/INT8 target | `Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8` (rev `417ede1`) |
-| `/models/draft` | Qwen3.8-27B DFlash2 draft | `z-lab/Qwen3.8-27B-DFlash2` (rev `50307d4`) |
+| 挂载路径 | 内容 | 下载地址 | 固定 revision |
+|---|---|---|---|
+| `/models/target` | Qwen3.8-27B SmoothQuant W8A8/INT8 target | [Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8](https://huggingface.co/Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8) | `417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e` |
+| `/models/draft` | Qwen3.8-27B DFlash2 draft | [z-lab/Qwen3.8-27B-DFlash2](https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2) | `50307d4c4cde6860d4eee73e2547cd786fe8e8a4` |
+
+下载示例（需要 `huggingface-cli`）：
+
+```bash
+huggingface-cli download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
+  --revision 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e \
+  --local-dir /data/models/Qwen3.8-27B-SmoothQuant-W8A8-INT8
+
+huggingface-cli download z-lab/Qwen3.8-27B-DFlash2 \
+  --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
+  --local-dir /data/models/Qwen3.8-27B-DFlash2
+```
 
 #### 5. 启动服务
 
@@ -213,9 +225,21 @@ docker images | grep qwen38-k100ai-int8
 
 > 根目录的 `Dockerfile / build_image.sh / run.sh` 是 **TP4 Stable Profile** 源码路线。
 
+#### 0. 上游基础镜像
+
+源码构建基于 SourceFind 官方 K100AI 基础镜像（Dockerfile 中已固定 digest）：
+
+```text
+harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
+```
+
+- 该镜像包含 SourceFind SGLang 0.5.12 / DTK 26.04 运行环境；
+- 需要能访问 `harbor.sourcefind.cn:5443`（海光内网/授权环境）；
+- 离线环境可先在有网机器 `docker pull` 后导出迁移，或在 `.env` 中设置 `BASE_IMAGE` 指向本地已导入的 tag。
+
 #### 1. 准备模型
 
-同方式 A 第 4 步。
+同方式 A 第 4 步（target / draft 下载地址与 revision 见该节）。
 
 #### 2. 配置环境
 
@@ -302,10 +326,10 @@ TP1 和 TP4 的共同部分远大于差异：
 
 ## 上游与固定版本
 
-- Qwen base: `Qwen/Qwen3.8-27B`
-- W8A8 target: `Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8`
-- DFlash2 draft: `z-lab/Qwen3.8-27B-DFlash2`
-- DFlash reference: `z-lab/dflash`
+- Qwen base: [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B)
+- W8A8 target: [Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8](https://huggingface.co/Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8)（rev `417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e`）
+- DFlash2 draft: [z-lab/Qwen3.8-27B-DFlash2](https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2)（rev `50307d4c4cde6860d4eee73e2547cd786fe8e8a4`）
+- DFlash reference: [z-lab/dflash](https://huggingface.co/z-lab/dflash)
 - SGLang base: SourceFind SGLang 0.5.12 / DTK 26.04 for K100AI
 
 当前验证的 SourceFind image digest：
