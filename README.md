@@ -329,7 +329,7 @@ TP1 和 TP4 的共同部分远大于差异：
 - Qwen base: [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B)
 - W8A8 target: [Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8](https://huggingface.co/Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8)（rev `417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e`）
 - DFlash2 draft: [z-lab/Qwen3.8-27B-DFlash2](https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2)（rev `50307d4c4cde6860d4eee73e2547cd786fe8e8a4`）
-- DFlash reference: [z-lab/dflash](https://huggingface.co/z-lab/dflash)
+- DFlash reference: `z-lab/dflash`（算法参考，私有仓库，无需下载）
 - SGLang base: SourceFind SGLang 0.5.12 / DTK 26.04 for K100AI
 
 当前验证的 SourceFind image digest：
