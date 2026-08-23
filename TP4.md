@@ -40,17 +40,26 @@
 
 > **算力服务器不能联网？** 请直接看：[TP4 离线算力服务器部署教程](TP4_OFFLINE_DEPLOY.md)
 
-先下载两份模型：
+先准备模型权重。**下载源二选一，不要重复下载：**
+
+1. **夸克整合包**：https://pan.quark.cn/s/eb79a87216ba?pwd=Rcxc，提取码 `Rcxc`。该包已同时包含 W8A8 Target + DFlash2 Draft。
+2. **HuggingFace**：国内网络可使用群友实测可用的 HF Mirror：
 
 ```bash
+python3 -m pip install -U huggingface_hub
+export HF_ENDPOINT=https://hf-mirror.com
+export HF_HUB_DISABLE_XET=1
+
 hf download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
-  --revision 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e \
+  --revision 417ede1 \
   --local-dir /data/models/Qwen3.8-27B-SmoothQuant-W8A8-INT8
 
 hf download z-lab/Qwen3.8-27B-DFlash2 \
-  --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
+  --revision 50307d4 \
   --local-dir /data/models/Qwen3.8-27B-DFlash2
 ```
+
+如果可以直接访问 HuggingFace，只需去掉两行 `export`。**夸克和 HuggingFace 任选其一；不要两边都下载。**
 
 然后：
 
@@ -144,15 +153,7 @@ https://huggingface.co/Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8
 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e
 ```
 
-建议：
-
-```bash
-hf download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
-  --revision 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e \
-  --local-dir /data/my_models/Qwen/Qwen3.8-27B-SmoothQuant-W8A8-INT8
-```
-
-不要直接下载当前 HEAD 后和本文成绩比较，因为上游仓库已经继续发生过变化。
+下载时请使用本文上方的“夸克整合包 / HuggingFace”二选一方案。HuggingFace 方案固定到 `417ede1`（完整 revision 如上），不要直接下载当前 HEAD 后和本文成绩比较，因为上游仓库已经继续发生过变化。
 
 ## 2.3 DFlash2 草稿模型
 
@@ -178,13 +179,7 @@ model.safetensors
 67fc76d68dc5a9415511a4f394ef744d67510cd20e93b37cc2cc7d28e4bab65c
 ```
 
-下载：
-
-```bash
-hf download z-lab/Qwen3.8-27B-DFlash2 \
-  --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
-  --local-dir /data/qwen38-dflash2-k100ai/models/Qwen3.8-27B-DFlash2
-```
+下载时同样使用本文上方的二选一方案。HuggingFace 方案固定到 `50307d4`（完整 revision 如上）；如果已经下载夸克整合包，就不要再单独下载 Draft。
 
 该 checkpoint 的核心配置为：
 

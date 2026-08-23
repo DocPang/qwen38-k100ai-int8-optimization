@@ -70,7 +70,7 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 
 ## 完整镜像
 
-重新打包的统一镜像支持 `PROFILE=tp1|tp2|tp4`，不包含模型权重。用户只需额外挂载 W8A8 target 与 DFlash2 draft，**不需要 BF16/FP16 Base 权重**。
+重新打包的统一镜像支持 `PROFILE=tp1|tp2|tp4`，不包含模型权重。用户只需额外挂载 W8A8 Target 与 DFlash2 Draft，**不需要 BF16/FP16 Base 权重**。模型下载来源二选一：夸克整合包（Target + Draft 已合并）或 HuggingFace 固定 revision；**不要两边重复下载**，完整命令见主 README。
 
 - Docker tag：`qwen38-k100ai-int8:unified-20260823`
 - 压缩包：`qwen38-k100ai-int8-unified-20260823.docker.tar.zst`

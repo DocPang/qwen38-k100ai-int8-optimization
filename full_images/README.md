@@ -43,10 +43,15 @@ bash run.sh
 
 镜像不包含模型权重。只需额外挂载：
 
-1. Qwen3.8-27B SmoothQuant W8A8/INT8 target；
-2. Qwen3.8-27B DFlash2 draft。
+1. Qwen3.8-27B SmoothQuant W8A8/INT8 Target；
+2. Qwen3.8-27B DFlash2 Draft。
 
-**不需要下载 BF16/FP16 Base 权重**，processor metadata 已内置。
+模型下载来源**二选一，不要重复下载**：
+
+- **夸克整合包**：https://pan.quark.cn/s/eb79a87216ba?pwd=Rcxc，提取码 `Rcxc`；一个包已经同时包含 Target + Draft。
+- **HuggingFace**：按主 README 中固定 revision 下载两份模型；国内网络可设置 `HF_ENDPOINT=https://hf-mirror.com`、`HF_HUB_DISABLE_XET=1`。
+
+**不需要下载 BF16/FP16 Base 权重**，processor metadata 已内置。完整命令见 [主 README](../README.md)。
 
 ## 离线使用
 

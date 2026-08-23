@@ -16,7 +16,7 @@
 
 ---
 
-## 1. 在联网机器准备 4 样东西
+## 1. 在联网机器准备 3 类资源
 
 ### A. SourceFind 基础镜像
 
@@ -30,40 +30,53 @@ docker save -o sourcefind-sglang0512-k100ai-20260620.tar qwen38-sourcefind-base:
 
 约 31.7GB。本机已有对应镜像时 Docker 会复用，不会重新下载全部 layer。
 
-### B. W8A8 target 权重
+### B. 模型权重（二选一下载源，不要重复下载）
+
+无论后面采用哪种部署方式，都只需要一套模型：W8A8 Target + DFlash2 Draft。下面两个来源**二选一**。
+
+**下载源 1：夸克整合包**
+
+- 文件夹：`Qwen3.8-K100AI-Weights-20260823`
+- 下载：https://pan.quark.cn/s/eb79a87216ba?pwd=Rcxc
+- 提取码：`Rcxc`
+- 压缩包：`qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst`
+- SHA256：`aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5`
+
+该包已经同时包含 Target 和 Draft，下载后**不要再执行下面的 HuggingFace 命令**。
+
+**下载源 2：HuggingFace**
+
+国内网络可使用群友实测可用的镜像：
 
 ```bash
+python3 -m pip install -U huggingface_hub
+export HF_ENDPOINT=https://hf-mirror.com
+export HF_HUB_DISABLE_XET=1
+
 hf download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
-  --revision 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e \
+  --revision 417ede1 \
   --local-dir Qwen3.8-27B-SmoothQuant-W8A8-INT8
-```
 
-约 30GB。
-
-### C. DFlash2 draft 权重
-
-```bash
 hf download z-lab/Qwen3.8-27B-DFlash2 \
-  --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
+  --revision 50307d4 \
   --local-dir Qwen3.8-27B-DFlash2
 ```
 
-约 3.6GB。
+如果可以直接访问 HuggingFace，只需去掉两行 `export`。这仍然是同一个 HuggingFace 下载方案；两条 `hf download` 是该方案内需要的两份模型。
 
-### D. 本项目
+### C. 本项目（固定 v1.1.0）
 
 ```bash
-git clone https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
+git clone --branch v1.1.0 --depth 1 https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
 ```
 
 本项目不到 1MB。
 
-把下面 4 项通过内网、移动硬盘、NAS、`scp` 或 `rsync` 搬到离线服务器：
+把下面 3 类资源通过内网、移动硬盘、NAS、`scp` 或 `rsync` 搬到离线服务器：
 
 ```text
 sourcefind-sglang0512-k100ai-20260620.tar
-Qwen3.8-27B-SmoothQuant-W8A8-INT8/
-Qwen3.8-27B-DFlash2/
+模型权重（夸克整合包解压结果，或 HuggingFace 下载得到的两个目录，二选一来源）
 qwen38-k100ai-int8-optimization/
 ```
 
