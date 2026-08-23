@@ -32,6 +32,8 @@
 | 128K | 174.68s | 33.90 | 90.66s | 49.98 | 49.45s | 88.68 |
 | 257.9K | 466.44s | 24.30 | 234.28s | 53.10 | 132.25s | 72.49 |
 
+![TP1 / TP2 / TP4 十档性能对比](assets/tp1_tp2_tp4_10level.png)
+
 完整 Total / scaling / quality：[`PERFORMANCE.md`](PERFORMANCE.md)。
 
 ## TP1 旧版修正
@@ -74,6 +76,6 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 - 压缩包：`qwen38-k100ai-int8-unified-20260823.docker.tar.zst`
 - 压缩大小：5.65 GiB（6,065,184,632 bytes）
 - SHA256：`6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14`
-- 完整镜像通过网盘分发；GitHub Release 保留 patchset、十档数据与整包 SHA256。
+- 完整镜像下载：[夸克网盘 full_images](https://pan.quark.cn/s/e7626123faa0?pwd=M8Fr)，提取码：`M8Fr`；GitHub Release 保留 patchset、十档数据与整包 SHA256。
 
 下载整包后按 SHA256 校验，再执行 `zstd -dc ... | docker load`。

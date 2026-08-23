@@ -39,7 +39,7 @@ bash run.sh
 - 压缩大小：**5.65 GiB（6,065,184,632 bytes）**
 - Docker 镜像大小：**约 31.70 GB（Docker image `.Size`）**
 - SHA256：`6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14`
-- 下载：**完整镜像通过网盘分发；GitHub Release 保留 patchset、十档数据与整包 SHA256。网盘链接上传完成后更新。**
+- 下载：**[夸克网盘：full_images](https://pan.quark.cn/s/e7626123faa0?pwd=M8Fr)** · 提取码：`M8Fr`
 
 镜像不包含模型权重。只需额外挂载：
 

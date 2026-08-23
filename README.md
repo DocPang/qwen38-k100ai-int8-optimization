@@ -52,6 +52,8 @@
 | 128K | 174.68s | 33.90 | 90.66s | 49.98 | 49.45s | 88.68 |
 | 257.9K | 466.44s | 24.30 | 234.28s | 53.10 | 132.25s | 72.49 |
 
+![TP1 / TP2 / TP4 十档性能对比](assets/tp1_tp2_tp4_10level.png)
+
 完整 Total、scaling 与质量门见 **[PERFORMANCE.md](PERFORMANCE.md)**。机器可读统一数据：`results/tp1_tp2_tp4_10level_20260823.json`。
 
 ---
@@ -82,7 +84,7 @@
 - 大小：**5.65 GiB（6,065,184,632 bytes）**（压缩后）/ **约 31.70 GB（Docker image `.Size`）**（Docker 镜像）
 - Docker tag：`qwen38-k100ai-int8:unified-20260823`
 - SHA256：`6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14`
-- 下载：**完整镜像通过网盘分发；GitHub Release 保留 patchset、十档数据与整包 SHA256。网盘链接上传完成后更新到这里。**
+- 下载：**[夸克网盘：full_images](https://pan.quark.cn/s/e7626123faa0?pwd=M8Fr)** · 提取码：`M8Fr`
 
 > 离线环境：先在有网机器下载完整镜像，再通过 rsync / U盘 / scp 拷贝到目标服务器。
 
