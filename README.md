@@ -251,7 +251,98 @@ docker run -d \
 >
 > **模型路径**：`/path/to/target` 和 `/path/to/draft` 替换为你实际的模型目录。
 
-#### 6. 验证
+#### 6. SGLang 实际启动命令
+
+普通用户**不需要手工执行下面的长命令**。推荐直接使用上面的统一镜像，通过 `PROFILE=tp1|tp2|tp4` 启动；镜像 entrypoint 会自动加载对应的 K100AI runtime patch、Triton tune cache、native `.so` 和环境变量。
+
+下面列出的是 **v1.1.0 / unified-20260823 镜像内部实际执行的 SGLang 启动参数主体**，便于排障、二次开发和核对配置。只复制这一段到裸上游 SGLang 环境里，**不能**保证得到本项目的兼容性和性能；完整环境变量以 [`full_images/entrypoint_tp1.sh`](full_images/entrypoint_tp1.sh)、[`entrypoint_tp2.sh`](full_images/entrypoint_tp2.sh) 和 [`entrypoint_tp4.sh`](full_images/entrypoint_tp4.sh) 为准。
+
+**TP1：**
+
+```bash
+python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py \
+  --model-path /tmp/q38-target-model \
+  --host 0.0.0.0 --port 8090 --random-seed 0 \
+  --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP1 \
+  --chat-template /data/qwen38-dflash2-k100ai/runtime_assets/qwen38_chat_template.jinja \
+  --reasoning-parser qwen3 --tool-call-parser qwen3_coder \
+  --dtype bfloat16 --kv-cache-dtype bfloat16 \
+  --tp-size 1 --pp-size 1 \
+  --attention-backend fa3 --mm-attention-backend fa3 --page-size 64 \
+  --mamba-scheduler-strategy extra_buffer --max-mamba-cache-size 8 \
+  --cuda-graph-bs 1 --disable-piecewise-cuda-graph \
+  --context-length 262144 --mem-fraction-static 0.84 \
+  --chunked-prefill-size 8192 --max-prefill-tokens 16384 \
+  --pack-paged-kv-to-varlen auto \
+  --pack-paged-kv-to-varlen-min-q-tokens 2048 \
+  --pack-paged-kv-to-varlen-min-kv-tokens 8192 \
+  --max-running-requests 1 \
+  --speculative-algorithm DFLASH \
+  --speculative-draft-model-path /models/draft \
+  --speculative-draft-model-quantization unquant \
+  --speculative-draft-attention-backend triton \
+  --speculative-num-steps 1 --speculative-num-draft-tokens 8 \
+  --enable-metrics
+```
+
+**TP2：**
+
+```bash
+python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py \
+  --model-path /tmp/q38-target-model \
+  --host 0.0.0.0 --port 8062 --random-seed 0 \
+  --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP2 \
+  --chat-template /data/qwen38-dflash2-k100ai/runtime_assets/qwen38_chat_template.jinja \
+  --reasoning-parser qwen3 --tool-call-parser qwen3_coder \
+  --dtype bfloat16 --kv-cache-dtype bfloat16 \
+  --tp-size 2 --pp-size 1 \
+  --attention-backend fa3 --mm-attention-backend fa3 --page-size 64 \
+  --mamba-scheduler-strategy extra_buffer --max-mamba-cache-size 16 \
+  --cuda-graph-bs 1 --disable-piecewise-cuda-graph \
+  --context-length 262144 --mem-fraction-static 0.88 \
+  --chunked-prefill-size 8192 --max-prefill-tokens 16384 \
+  --pack-paged-kv-to-varlen auto \
+  --pack-paged-kv-to-varlen-min-q-tokens 8192 \
+  --pack-paged-kv-to-varlen-min-kv-tokens 8192 \
+  --max-running-requests 4 \
+  --speculative-algorithm DFLASH \
+  --speculative-draft-model-path /models/draft \
+  --speculative-draft-model-quantization unquant \
+  --speculative-draft-attention-backend triton \
+  --speculative-num-steps 1 --speculative-num-draft-tokens 8 \
+  --enable-metrics
+```
+
+**TP4：**
+
+```bash
+python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py \
+  --model-path /tmp/q38-target-model \
+  --host 0.0.0.0 --port 8068 --random-seed 0 \
+  --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP4 \
+  --chat-template /data/qwen38-dflash2-k100ai/runtime_assets/qwen38_chat_template.jinja \
+  --dtype bfloat16 --kv-cache-dtype bfloat16 \
+  --tp-size 4 --pp-size 1 \
+  --attention-backend fa3 --mm-attention-backend fa3 --page-size 64 \
+  --mamba-scheduler-strategy extra_buffer --max-mamba-cache-size 16 \
+  --cuda-graph-bs 1 --disable-piecewise-cuda-graph \
+  --context-length 262144 --mem-fraction-static 0.90 \
+  --chunked-prefill-size 16384 --max-prefill-tokens 16384 \
+  --pack-paged-kv-to-varlen auto \
+  --pack-paged-kv-to-varlen-min-q-tokens 2048 \
+  --pack-paged-kv-to-varlen-min-kv-tokens 8192 \
+  --max-total-tokens 1048576 --max-running-requests 4 \
+  --speculative-algorithm DFLASH \
+  --speculative-draft-model-path /models/draft \
+  --speculative-draft-model-quantization unquant \
+  --speculative-draft-attention-backend triton \
+  --speculative-num-steps 1 --speculative-num-draft-tokens 8 \
+  --enable-metrics --tool-call-parser qwen3_coder --reasoning-parser qwen3
+```
+
+> TP2 / TP4 默认使用 P2P 和 custom all-reduce。TP2 entrypoint 明确支持 `P2P=0` 与 `CUSTOM_AR=0`；TP4 entrypoint 支持 `CUSTOM_AR=0`，P2P 保持正式版默认配置。TP4 的 U036、Q16、tail-split、DFlash2 selector 等长上下文优化环境变量没有在上面的 argv 重复展开，完整固定值请直接查看 `full_images/entrypoint_tp4.sh`。
+
+#### 7. 验证
 
 ```bash
 # 等待模型加载（不同 Profile / 机器环境会有差异）
@@ -331,7 +422,7 @@ bash build_image.sh
 
 #### 5. 准备模型 + 启动
 
-模型权重按上方统一的“模型权重下载（二选一）”准备一次即可；挂载、启动与验证同方式 A 的第 4、5、6 步。
+模型权重按上方统一的“模型权重下载（二选一）”准备一次即可；挂载、启动与验证同方式 A 的第 4、5、7 步。第 6 节是高级用户查看的镜像内 SGLang 实际启动参数，不是额外必做步骤。
 
 ---
 
