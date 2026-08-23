@@ -3,5 +3,6 @@
 *.log
 __pycache__/
 *.pyc
+full_images/dist/
 .build/native/*.so
 .build/patchset_longctx_v8/

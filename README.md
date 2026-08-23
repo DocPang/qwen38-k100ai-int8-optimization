@@ -82,21 +82,9 @@
 - 大小：**5.65 GiB（6,065,184,632 bytes）**（压缩后）/ **约 31.70 GB（Docker image `.Size`）**（Docker 镜像）
 - Docker tag：`qwen38-k100ai-int8:unified-20260823`
 - SHA256：`6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14`
-- 下载：**[GitHub Release v1.1.0](https://github.com/DocPang/qwen38-k100ai-int8-optimization/releases/tag/v1.1.0)（4 个分卷附件，下载后合并）**
+- 下载：**完整镜像通过网盘分发；GitHub Release 保留 patchset、十档数据与整包 SHA256。网盘链接上传完成后更新到这里。**
 
-> GitHub Release 由于单附件大小限制，将完整镜像拆成 `part-00` ~ `part-03` 四个分卷。四个分卷下载完成后先合并：
->
-> ```bash
-> cat qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-00 \
->     qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-01 \
->     qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-02 \
->     qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-03 \
->   > qwen38-k100ai-int8-unified-20260823.docker.tar.zst
-> ```
->
-> 分卷 SHA256 见 [`full_images/FULL_IMAGE_PARTS_SHA256.txt`](full_images/FULL_IMAGE_PARTS_SHA256.txt)。
->
-> 离线环境：先在有网机器下载，再通过 rsync / U盘 / scp 拷贝到目标服务器。
+> 离线环境：先在有网机器下载完整镜像，再通过 rsync / U盘 / scp 拷贝到目标服务器。
 
 #### 2. 校验完整性
 
