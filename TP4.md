@@ -562,10 +562,10 @@ export PYTHONPATH=/data/qwen38-dflash2-k100ai/runtime_patch_dflash_tp4_q16k_agen
 export SGLANG_REQUIRED_SITECUSTOMIZE_PREFIX=/data/qwen38-dflash2-k100ai/runtime_patch_dflash_tp4_q16k_agent128k_v1
 ```
 
-SGLang server 的核心参数：
+SGLang server 的核心参数（使用 SourceFind SGLang 0.5.12 自带的原生 CLI）：
 
 ```bash
-python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py \
+sglang serve \
   --model-path /data/my_models/Qwen/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
   --host 0.0.0.0 \
   --port 8068 \
@@ -598,6 +598,8 @@ python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecu
   --speculative-num-draft-tokens 8 \
   --enable-metrics
 ```
+
+> 正式 v1.1.0 镜像 entrypoint 仍会在 `sglang.launch_server` 前增加 `launch_sglang_require_sitecustomize.py` 的 fail-closed 检查，防止 runtime patch 加载失败后静默退回 stock SGLang；该包装器不修改 server 参数或推理逻辑。手工排障时可直接使用上面的原生 `sglang serve`。
 
 注意：真正使用 Docker 时还需要按自己的机器传入 `/dev/kfd` 和正确的 `/dev/dri/renderD*`。测试机 GPU4-7 对应的设备号不能假设在所有服务器上都一样，所以本文不建议直接复制固定 renderD 编号。
 

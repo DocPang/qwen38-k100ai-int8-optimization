@@ -251,16 +251,18 @@ docker run -d \
 >
 > **模型路径**：`/path/to/target` 和 `/path/to/draft` 替换为你实际的模型目录。
 
-#### 6. SGLang 实际启动命令
+#### 6. 原生 SGLang 启动命令
 
 普通用户**不需要手工执行下面的长命令**。推荐直接使用上面的统一镜像，通过 `PROFILE=tp1|tp2|tp4` 启动；镜像 entrypoint 会自动加载对应的 K100AI runtime patch、Triton tune cache、native `.so` 和环境变量。
 
-下面列出的是 **v1.1.0 / unified-20260823 镜像内部实际执行的 SGLang 启动参数主体**，便于排障、二次开发和核对配置。只复制这一段到裸上游 SGLang 环境里，**不能**保证得到本项目的兼容性和性能；完整环境变量以 [`full_images/entrypoint_tp1.sh`](full_images/entrypoint_tp1.sh)、[`entrypoint_tp2.sh`](full_images/entrypoint_tp2.sh) 和 [`entrypoint_tp4.sh`](full_images/entrypoint_tp4.sh) 为准。
+下面使用固定 SourceFind SGLang 0.5.12 镜像自带的**原生 `sglang serve` CLI**，参数与本项目正式 Profile 一致，便于排障、二次开发和核对配置。只复制 argv 到裸上游 SGLang 环境里，**不能**保证得到本项目的兼容性和性能；仍需先加载对应的 `PYTHONPATH`、K100AI runtime patch、Triton tune cache、native `.so` 和环境变量，完整固定值以 [`full_images/entrypoint_tp1.sh`](full_images/entrypoint_tp1.sh)、[`entrypoint_tp2.sh`](full_images/entrypoint_tp2.sh) 和 [`entrypoint_tp4.sh`](full_images/entrypoint_tp4.sh) 为准。
+
+> v1.1.0 统一镜像内部实际使用 `launch_sglang_require_sitecustomize.py` 作为 **fail-closed 启动门禁**：它只负责强制确认 `sitecustomize` 补丁加载成功，然后调用标准 `sglang.launch_server`。它不是自研 server，也不改变 SGLang 参数语义。下面为了更直观，展示等价的原生 `sglang serve` 写法。
 
 **TP1：**
 
 ```bash
-python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py \
+sglang serve \
   --model-path /tmp/q38-target-model \
   --host 0.0.0.0 --port 8090 --random-seed 0 \
   --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP1 \
@@ -288,7 +290,7 @@ python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecu
 **TP2：**
 
 ```bash
-python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py \
+sglang serve \
   --model-path /tmp/q38-target-model \
   --host 0.0.0.0 --port 8062 --random-seed 0 \
   --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP2 \
@@ -316,7 +318,7 @@ python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecu
 **TP4：**
 
 ```bash
-python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py \
+sglang serve \
   --model-path /tmp/q38-target-model \
   --host 0.0.0.0 --port 8068 --random-seed 0 \
   --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP4 \
