@@ -8,11 +8,11 @@ if [[ -z "${BASE_IMAGE:-}" && -f "$ROOT/.env" ]]; then
   [[ -n "$env_base" ]] && BASE_IMAGE="$env_base"
 fi
 BASE_IMAGE=${BASE_IMAGE:-$DEFAULT_BASE}
-IMAGE_TAG=${IMAGE_TAG:-qwen38-w8a8-k100ai-dflash2-tp4:local}
+IMAGE_TAG=${IMAGE_TAG:-qwen38-k100ai-int8-series:local}
 
 cd "$ROOT"
 if [[ "${REBUILD_NATIVE:-0}" == "1" ]]; then
-  echo "[native] REBUILD_NATIVE=1: rebuilding four userspace HIP extensions from source"
+  echo "[native] REBUILD_NATIVE=1: rebuilding seven userspace HIP extensions from source"
   "$ROOT/build_native.sh"
 else
   echo "[native] using validated prebuilt userspace extensions"

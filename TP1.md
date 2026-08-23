@@ -1,137 +1,110 @@
 # TP1 Profile：Qwen3.8-27B W8A8 + DFlash2 on K100AI
 
-> **定位：单张 K100AI / Agent128K / 长上下文优先**
-> 状态：**ACCEPTED**（2026-08-21）
+> **1× K100AI · 262K context · 单卡最终发布版**
+> 状态：**ACCEPTED / FINAL**（2026-08-23）
 
-> ⚠️ 本 Profile 依赖宿主机已经正常工作的 K100AI 驱动、DTK/hyhal 和 Docker GPU 环境。本项目不安装或替换宿主机驱动。当前文档先公开正式验收结果与技术边界；公共部署包正在做最后冻结，不建议把 TP4 根目录脚本直接改成 TP1 参数硬跑。
+> 当前公开版本已经替代此前的单卡 128K 方案，并把正式验收范围扩展到 257.9K。旧研究期证据不再放入公开仓库。
 
-## 1. Profile 目标
-
-TP1 的目标不是用一张卡去追 TP4 的绝对吞吐，而是在只占用 **1× K100AI** 的前提下，提供一个可长期运行、能够覆盖 64K–128K Agent 上下文的 Qwen3.8-27B W8A8 + DFlash2 服务。
-
-正式验收范围：
+## 1. 最终配置
 
 - Target：Qwen3.8-27B SmoothQuant W8A8 INT8；
 - Draft：Qwen3.8-27B DFlash2；
 - TP=1；
-- context length = **147456**；
+- context length = **262144**；
 - KV cache = BF16；
 - page size = 64；
 - chunked prefill = 8192；
 - max prefill tokens = 16384；
-- Radix Cache = enabled；
 - CUDA Graph bs=1；
 - speculative draft tokens = 8；
-- max running requests = 1。
+- max running requests = 1（正式验收口径）。
 
-这个 Profile 明确以 **Agent128K** 为边界，不把此前 262144-context 的实验结果混入正式版本。
+## 2. 当前长上下文方案
 
----
+TP1 当前正式方案将 TP2/TP4 后续研究中已经证明有效的长上下文技术重新回移到单卡，同时保留 TP1 自身的 correctness 路径：
 
-## 2. 核心方案
+- **BM128/BN64/w8 long-KV**：q=8192，KV 32K → 253952；
+- **exact 257900 qtail**：q=3948 / KV=257900；
+- vendor causal block 起点使用 **ceil-causal** 修复；
+- DFlash2 q=8 verifier 保留已验证的 **2× native q4 q8split**；
+- **Early-Triton N=1**：真实请求首个 TARGET_VERIFY round 的 layer 7/15 走 corrected Triton，后续恢复 q8split CUDA Graph；
+- gfx928 native INT8 GEMV、RMS→INT8、SwiGLU→INT8、GDN/compact-head 等公共优化栈继续保留。
 
-TP1 继承了整个 K100AI INT8 优化栈里的公共部分：
+### 为什么 TP1 没有启用 raw-q8 verifier
 
-- Qwen3.8 W8A8 / compressed-tensors compatibility；
-- K100AI/gfx928 native INT8 GEMV；
-- DFlash2 SGLang backport；
-- gfx928 paged-varlen correctness repair；
-- q=8 verifier → 2× native q=4 的 q8split fast path；
-- Radix Cache / Agent prefix cache；
-- 长上下文 chunked prefill 与 paged/varlen 路由。
-
-TP1 正式 acceptance 额外使用 **Early-Triton N=1**：
-
-- DFlash2 q8 verifier 默认继续使用高速 q8split/native CUDA Graph；
-- 每个真实请求只有第 1 个 TARGET_VERIFY round；
-- 在 full-attention layer **7、15** 使用 corrected Triton；
-- 该首轮强制 eager；
-- 后续 round 恢复 native q8split CUDA Graph。
-
-这个组合的目的，是在不让长上下文每一轮 verifier 都支付 Triton 高成本的前提下，保留已经验证过的短语义 correctness。
-
----
+TP2/TP4 上 raw-q8 verifier 有明确收益，但 TP1 的 QH24/KVH4 几何没有通过完整晋级门：64K 可行，128K 出现数值漂移，257.9K 隔离验证出现 VMFault。因此 TP1 **主动保留 q8split**，不为了形式统一强行启用不稳定路径。
 
 ## 3. 正式质量验收
 
 | Gate | 结果 |
 |---|---|
-| Arithmetic20 | **18/20**，与 corrected target-only 历史基线一致 |
-| Critical case15 | **303 / expected 303，PASS** |
-| 64K thinking needle | **PASS** |
-| 128K thinking needle | **PASS** |
+| Short semantic | **PASS** |
+| Arithmetic20 | **18/20** |
+| 已知 miss | case8 / case17，仅历史基线问题 |
+| Critical case15 | **303 / PASS** |
+| 257.9K canonical semantic | **PASS**，输出 `Q38LONGSEMANTICOK` |
+| 257.9K P95 needle | **PASS** |
 | contamination | **0 / PASS** |
-| runtime stability | health=200 · OOMKilled=false · RestartCount=0 |
+| Final manifest | **accept=true** |
+| runtime | restart=0 · OOM=false |
 
-正式 acceptance 结束时，十档全部通过 max_running/max_waiting 污染门禁。
-
----
+Authority：[`results/tp1_acceptance_20260823.json`](results/tp1_acceptance_20260823.json)
 
 ## 4. 正式十档性能
 
-测试口径：单请求、`/v1/completions`、output256、固定 canonical prompt corpus、无污染。
+统一口径：canonical corpus / output256 / DFlash2 / cold / 每档独立 cache flush / uncontaminated。
 
-| Prompt tokens | TTFT (s) | Decode (tok/s) | Total (s) |
+| Prompt | TTFT | Decode | Total |
 |---:|---:|---:|---:|
-| 512 | 0.611 | 23.48 | 11.469 |
-| 2,048 | 2.770 | 28.15 | 11.828 |
-| 4,096 | 8.108 | 24.96 | 18.324 |
-| 8,192 | 8.492 | 26.89 | 17.977 |
-| 12,288 | 13.902 | 27.27 | 23.253 |
-| 16,384 | 16.538 | **47.87** | 21.864 |
-| 32,768 | 35.578 | 27.34 | 44.904 |
-| 65,536 | 85.131 | **31.23** | 93.295 |
-| 98,304 | 150.231 | 21.05 | 162.348 |
-| 131,072 | 231.127 | **32.88** | 238.883 |
+| 512 | 5.93s | 23.92 tok/s | 16.59s |
+| 2K | 7.21s | 28.65 | 16.11s |
+| 4K | 12.41s | 25.65 | 22.35s |
+| 8K | 8.42s | 27.58 | 17.67s |
+| 12K | 13.74s | 28.29 | 22.75s |
+| 16K | 16.55s | 26.59 | 26.14s |
+| 32K | 34.01s | 27.30 | 43.35s |
+| 64K | **72.66s** | **31.68** | 80.71s |
+| 128K | **174.68s** | **33.90** | 182.20s |
+| 257.9K | **466.44s** | **24.30** | 476.93s |
 
-- 10/10 complete；
-- decode mean ≈ **29.11 tok/s**；
-- decode median ≈ **27.31 tok/s**。
+### 相比旧 TP1 的关键修正
 
-### 正式验收截图
+旧版 128K TTFT 为 **231.13s**。当前正式结果为 **174.68s**，下降约 **24.4%**；同时首次把 TP1 正式验收范围扩展到 **257.9K**。
 
-![TP1 Early-Triton N=1 Agent128K 十档验收](assets/tp1_earlytriton1_agent128k_10level.png)
+64K 也从旧版 85.13s 降到 **72.66s**。
 
-机器可读原始证据：
+更重要的是长上下文 scaling 恢复合理：
 
-- [十档 benchmark JSON](results/tp1_earlytriton1_agent128k_10level_20260821.json)
-- [Arithmetic20 JSON](results/tp1_earlytriton1_arithmetic20_20260821.json)
-- [64K thinking needle JSON](results/tp1_earlytriton1_needle_64k_20260821.json)
-- [128K thinking needle JSON](results/tp1_earlytriton1_needle_128k_20260821.json)
-- [ACCEPTED manifest](results/tp1_earlytriton1_agent128k_ACCEPTED_20260821.json)
-- [证据 SHA256](results/TP1_ACCEPTANCE_SHA256.txt)
+- 64K：TP1 / TP2 TTFT ≈ **1.80×**；
+- 128K：≈ **1.93×**；
+- 257.9K：≈ **1.99×**。
 
-> 512–12K 会支付一次 corrected-Triton 的固定首轮成本，因此不是这个 Profile 的主要优化目标。该版本优先保证 64K/128K Agent correctness 与长期运行稳定性。
+这说明旧版 128K 的异常变陡已经被修正。
 
----
+## 5. 部署
 
-## 5. 和 TP4 怎么选
+统一镜像/统一构建版本使用：
 
-如果你只有一张空闲 K100AI，或者希望把 GPU 留给其他任务，TP1 是合理选择。
+```bash
+PROFILE=tp1
+HIP_VISIBLE_DEVICES=0
+PORT=8090
+```
 
-如果你有 4 张卡并且主要跑 32K–128K Agent 工作负载，TP4 的 TTFT 与 decode 都明显更强：
+或 `.env` 中设置 `PROFILE=tp1` 后：
 
-| Context | TP1 TTFT | TP1 Decode | TP4 TTFT | TP4 Decode |
-|---:|---:|---:|---:|---:|
-| 16K | 16.54s | 47.87 | 4.78s | 108.85 |
-| 64K | 85.13s | 31.23 | 24.29s | 66.10 |
-| 128K | 231.13s | 32.88 | 63.72s | 68.59 |
+```bash
+bash run.sh
+```
 
-TP4 使用 4 倍 GPU，性能更高是预期结果；TP1 的价值在于**单卡可用与 GPU 成本**，不是和 TP4 比绝对冠军速度。
+只映射 **1 个**对应的 render node，详见 [README](README.md)。
 
----
+## 6. 证据
 
-## 6. 发布状态
+- [Acceptance manifest](results/tp1_acceptance_20260823.json)
+- [257.9K semantic](results/tp1_257900_semantic_20260823.json)
+- [257.9K P95 needle](results/tp1_257900_p95_needle_20260823.json)
+- [Arithmetic20](results/tp1_arithmetic20_20260823.json)
+- [TP1/TP2/TP4 统一十档](PERFORMANCE.md)
 
-当前正式 acceptance 已完成，**截图、十档、Arithmetic20、64K/128K needle 与 ACCEPTED manifest 已全部公开入库并带 SHA256**。公共部署包还剩最后一层工作：
-
-- 将 TP1 runtime patch 从研究绝对路径整理成可复现 payload；
-- 固定公开 Docker build/run 入口；
-- 对公开包再跑一次冷启动、quality gate 与十档回归；
-- 之后与 TP4 一起维护在本仓库中，而不是另开 GitHub 项目。
-
-完成后首页会直接提供 TP1 的 `build/run` 入口；当前根目录的 Dockerfile/scripts 仍然对应已经完整公开打包验证的 TP4 Stable Profile。
-
----
-
-返回：[项目首页](README.md) · [TP4 Profile](TP4.md)
+返回：[项目首页](README.md) · [TP2](TP2.md) · [TP4](TP4.md)

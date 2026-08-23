@@ -37,7 +37,10 @@ docker run --rm \
 required=(
   k100_int8_gemv_v7_sglang.so
   k100_int8_gemv_generic_v2_sglang.so
+  k100_int8_gemv_k5120_full5_sglang.so
+  k100_int8_gemv_k5120_ldsx_v1_sglang.so
   k100_int8_gemv_deep_v4_sglang.so
+  k100_int8_gemv_tp2_row_ldsx_v1_sglang.so
   k100_int8_gemv_tp4_row_ldsx_v1_sglang.so
 )
 for f in "${required[@]}"; do
@@ -46,4 +49,4 @@ done
 
 sha256sum "$OUT"/*_sglang.so
 
-echo "[safe-build] PASS: built four user-space HIP extensions; host GPU driver was not modified."
+echo "[safe-build] PASS: built seven user-space HIP extensions; host GPU driver was not modified."

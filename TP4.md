@@ -1,6 +1,8 @@
 # TP4 Profile：Qwen3.8-27B W8A8 + DFlash2 on K100AI
 
-[← 返回项目总览](README.md)
+[← 返回项目总览](README.md) · [TP1](TP1.md) · [TP2](TP2.md) · [三档最终十档](PERFORMANCE.md)
+
+> **当前公开说明（2026-08-23）**：TP4 与 TP1 / TP2 统一打包为 `PROFILE=tp1|tp2|tp4` 系列。本文保留 TP4 的完整技术说明，但不再使用研发期迭代号作为产品名称。
 
 > ⚠️ **免责声明 / 风险提示**
 >
@@ -8,10 +10,9 @@
 >
 > **请先备份宿主机现有配置。不要为了照抄本项目而直接覆盖驱动、修改 GRUB/IOMMU/ACS、执行未知 `setpci` 命令或在生产服务器上盲目试验。** 本仓库只在 Docker/用户态叠加优化，不会自动修改宿主机驱动。
 >
-> **特别说明：本项目不包含、不编译、也不安装 `amdgpu.ko`、DKMS 或任何宿主机 GPU 内核驱动。** 默认直接使用仓库内已验证的 4 个 K100AI/gfx928 **用户态 PyTorch/HIP `.so`**；对应 `.hip` 源码全部公开。只有用户主动选择源码重编时才会启动临时编译容器，而且该容器不映射 `/dev/kfd` 或 `renderD*`、不使用 privileged、无网络、只读挂载 `/opt/hyhal`。如果现有 `hy-smi`、`/opt/hyhal` 或官方容器环境本身不正常，请停止部署，不要让本项目替你“修驱动”。
+> **特别说明：本项目不包含、不编译、也不安装 `amdgpu.ko`、DKMS 或任何宿主机 GPU 内核驱动。** v1.1.0 系列仓库提供 7 个已验证的 K100AI/gfx928 **用户态 PyTorch/HIP `.so`**，覆盖 TP1/TP2/TP4 的公共与 profile-specific native 依赖；对应 `.hip` 源码全部公开。只有用户主动选择源码重编时才会启动临时编译容器，而且该容器不映射 `/dev/kfd` 或 `renderD*`、不使用 privileged、无网络、只读挂载 `/opt/hyhal`。如果现有 `hy-smi`、`/opt/hyhal` 或官方容器环境本身不正常，请停止部署，不要让本项目替你“修驱动”。
 
-> 版本：v1.0.0 · 2026-08-21
-> 状态：**longctx-v8 Champion**。正式 cold output256 十档、128K needle、257900-token exact retrieval、三轮 257.9K 确定性和 restart/OOM 门禁均已通过。
+> 状态：**当前长上下文方案 Champion**。正式 cold output256 十档、128K needle、257900-token exact retrieval、三轮 257.9K 确定性和 restart/OOM 门禁均已通过。
 
 ## 摘要
 
@@ -31,7 +32,7 @@
 - PCIe / ACS / IOMMU / P2P 环境排查与验证；
 - 128K Agent prefix / Radix Cache 使用方式的实际验证。
 
-普通用户**不需要手工打 SGLang 补丁，也不需要先编译 native 扩展**。仓库直接提供 4 个已经在固定 SourceFind 镜像 / DTK / gfx928 环境验证过的用户态 `.so`，并附 SHA256；`bash build_image.sh` 默认校验这些二进制后直接构建派生镜像。4 个 `.hip` 源码和 `build_native.sh` 仍然公开，只有在你主动设置 `REBUILD_NATIVE=1` 时才会启动一次性、无 GPU 权限的编译容器重新构建。宿主机驱动、DTK、ACS、PCIe/IOMMU 都不会自动修改。
+普通用户**不需要手工打 SGLang 补丁，也不需要先编译 native 扩展**。系列仓库直接提供 7 个已经在固定 SourceFind 镜像 / DTK / gfx928 环境验证过的用户态 `.so`，并附 SHA256；`bash build_image.sh` 默认校验这些二进制后直接构建派生镜像。7 个 `.hip` 源码和 `build_native.sh` 仍然公开，只有在你主动设置 `REBUILD_NATIVE=1` 时才会启动一次性、无 GPU 权限的编译容器重新构建。宿主机驱动、DTK、ACS、PCIe/IOMMU 都不会自动修改。
 
 ---
 
@@ -197,22 +198,16 @@ hf download z-lab/Qwen3.8-27B-DFlash2 \
 - conv kernel：2
 - conv group：16
 
-## 2.4 Qwen 官方 BF16 仓库
+## 2.4 模型 metadata
 
-官方模型：
-
-```text
-https://huggingface.co/Qwen/Qwen3.8-27B
-```
-
-正式 W8A8 serving 不需要再次下载完整 52GB BF16 权重，但我们的稳定启动环境会从官方目录补两个 preprocessing metadata 文件：
+正式 W8A8 serving **不需要下载 Qwen3.8 BF16/FP16 Base 权重**。运行需要的：
 
 ```text
 preprocessor_config.json
 video_preprocessor_config.json
 ```
 
-如果只部署纯文本，也可以根据自己的 SGLang 版本判断是否需要它们。
+已经直接打进统一镜像和 patchset，用户只需准备 W8A8 target 与 DFlash2 draft 两份模型。
 
 ## 2.5 DFlash 上游参考代码
 
@@ -342,7 +337,7 @@ TP4 不是把 TP1 参数直接乘四。
 - BA24 INT8 shadow；
 - P2P / custom all-reduce A/B。
 
-早期稳定十档曾使用 P2P ON、custom all-reduce OFF；v1.0 longctx-v8 已完成 matched 验收并将 **P2P ON + custom all-reduce ON** 固化为当前正式配置。
+早期稳定十档曾使用 P2P ON、custom all-reduce OFF；当前长上下文方案已完成 matched 验收并将 **P2P ON + custom all-reduce ON** 固化为当前正式配置。
 
 ## 4.4 长上下文
 
@@ -366,7 +361,7 @@ Qwen3.8-27B 是 64 层 hybrid 结构，其中 48 层 linear attention、16 层 f
 - target hidden-state / draft cache 对接；
 - TP4 下的权重加载审计。
 
-另一个 K100AI 特有问题是：DFlash2 target verifier 的 q=8 会碰到前面提到的 gfx928 q>=5 paged-varlen no-write wrapper 分支。v1.0 不再走这个 wrapper：在严格 `batch1 / q=8 / QH6 / KVH1 / D256 / page64 / BF16` geometry 下直接调用底层 raw `paged_attention`。该 q8 路径在多个长 KV 点与原 `2×native q4` workaround 做过 bitwise gate；如果 geometry 不匹配则 fail-closed，而不是泛化放宽。
+另一个 K100AI 特有问题是：DFlash2 target verifier 的 q=8 会碰到前面提到的 gfx928 q>=5 paged-varlen no-write wrapper 分支。当前方案不再走这个 wrapper：在严格 `batch1 / q=8 / QH6 / KVH1 / D256 / page64 / BF16` geometry 下直接调用底层 raw `paged_attention`。该 q8 路径在多个长 KV 点与原 `2×native q4` workaround 做过 bitwise gate；如果 geometry 不匹配则 fail-closed，而不是泛化放宽。
 
 ---
 
@@ -378,7 +373,7 @@ Qwen3.8-27B 是 64 层 hybrid 结构，其中 48 层 linear attention、16 层 f
 qwen38-k100ai-patchset.tar.gz
 ```
 
-当前 v1.0.0 longctx-v8 patchset SHA256：
+当前 TP4 patchset SHA256：
 
 ```text
 d25f5412f34a47138c3f249991c5625fd567a6e79d1ef000015217acf7c889d9
@@ -415,31 +410,20 @@ sglang_dflash2_k100ai.patch
 | `runtime_patch_sglang_n4_sparse_w8a8_cache` | sparse W8A8 tune-cache miss 安全 fallback |
 | `runtime_patch_sglang_n5_compact_head` | M=1 compact lm-head shortlist |
 | `runtime_patch_sglang_n5_compact_head_gdnint8` | GDN QKVZ+BA INT8 fused input path |
-| `runtime_patch_sglang_n6_swiglu_exact` | SwiGLU→INT8 producer fusion |
-| `runtime_patch_sglang_n7_rms_gdn_exact` | GDN input RMSNorm→INT8 producer |
-| `runtime_patch_sglang_u004_native_out_gemv` | native output-projection INT8 GEMV |
-| `runtime_patch_sglang_u008_native_body_gemv` | gate_up/full_qkv 等 native body GEMV |
-| `runtime_patch_sglang_u010_native_gdn_split` | native GDN QKVZ/BA split consumer |
-| `runtime_patch_sglang_u016_deep_down` | deep MLP down-projection GEMV |
-| `runtime_patch_sglang_u019_k5120_full5` | K5120 full-prefetch GEMV 路径 |
-| `runtime_patch_sglang_u022_k5120_ldsx` | K5120 activation LDS-x |
-| `runtime_patch_sglang_tp4_k5120_ldsx_v1` | TP4 rank-local K5120 shape |
-| `runtime_patch_sglang_tp4_compact_head_v1` | TP4 local compact head |
-| `runtime_patch_sglang_tp4_row_ldsx_v1` | TP4 row-parallel LDS-x |
-| `runtime_patch_sglang_gfx928_paged_varlen_repair_v1/repair.py` | gfx928 multi-token paged-varlen correctness repair |
-| `runtime_patch_sglang_tp4_row_ldsx_varlenfix_v1` | 将 TP4 decode 优化和 paged-varlen repair 组合 |
-| `runtime_patch_sglang_tp4_u036_longkv_v1` | TP4 q8K long-KV prefill U036 路径 |
-| `runtime_patch_sglang_tp4_u036_rmsqkvz_v1` | U036 + RMS→QKVZ prequant producer |
-| `runtime_patch_sglang_tp4_u036_rmsqkvz_ba24_v1` | BA24 target parent 组合 |
-| `runtime_patch_sglang_tp4_u036_q16k_v1` | longctx-v8 q16K / exact-128K repair / >128K q8K scheduler / q3948 ceil-block tail |
-| `dflash_tp4_agent128k_sitecustomize.py` | BA24 target + DFlash2 q8 verifier；支持 fixed-geometry raw q8 paged path |
-| `dflash_tp4_q16k_agent128k_sitecustomize.py` | v1.0 最终 composition：DFlash2 base + q16/longctx-v8 addon |
+| 功能模块 | 作用 |
+|---|---|
+| W8A8 compatibility / producer fusion | W8A8 兼容、SwiGLU/RMSNorm producer 优化 |
+| native INT8 GEMV | output / body / GDN / deep-down / K5120 等 M=1 路径 |
+| TP4 rank-local LDS-x | TP4 row-parallel 与 K5120 shape 优化 |
+| gfx928 paged-varlen repair | 修复 multi-token paged attention correctness |
+| long-context scheduler | 128K 内 q16K，超长上下文切 q8K，257.9K partial-tail 修复 |
+| DFlash2 verifier | 固定 geometry 下的 q=8 verifier 与 selector 路径 |
 
 这些目录看起来层数较多，主要是因为研究期间坚持单变量 A/B 和可回退。正式长期维护版后续可以再扁平化，但当前 Draft 先保留已经实测过的组合关系。
 
 ## 5.3 K100AI 用户态 HIP native extension（不是驱动）
 
-这 4 个源码直接位于仓库根目录的 [`native_ext/`](native_ext/) 中，可以在 GitHub 页面直接审计：
+系列仓库提供 7 个已验证的用户态 native extensions 及对应 HIP 源码，位于 [`native_ext/`](native_ext/)；TP4 使用其中与自身 shape 对应的子集：
 
 | 文件 | 用途 |
 |---|---|
@@ -450,7 +434,7 @@ sglang_dflash2_k100ai.patch
 | `native_ext/build_native.py` | 用 SourceFind 镜像内 PyTorch/hipcc 编译上述 4 个扩展 |
 | `build_native.sh` | 最小权限编译 wrapper：无网络、无 GPU 设备、只读 `/opt/hyhal` |
 
-仓库默认提交 4 个已验证的预编译 `.so`，位于 `native_ext/prebuilt/`，其 SHA256 记录在 `native_ext/PREBUILT_SHA256SUMS`。Dockerfile 默认使用这些文件。`build_native.sh` 作为备用，会把重新编译的产物写到 `.build/native/`；Dockerfile 会在构建时用这些本机构建结果覆盖预编译版本。
+v1.1.0 系列仓库默认提交 7 个已验证的预编译 `.so`，位于 `native_ext/prebuilt/`，其 SHA256 记录在 `native_ext/PREBUILT_SHA256SUMS`。Dockerfile 默认使用这些文件。`build_native.sh` 作为备用，会把重新编译的产物写到 `.build/native/`；Dockerfile 会在构建时用这些本机构建结果覆盖预编译版本。
 
 再次强调：这些 `.so` 是 PyTorch 可加载的**用户态扩展**，不是 `amdgpu.ko`，不会通过 DKMS 安装，不会替换宿主机驱动。
 
@@ -475,11 +459,11 @@ FROM harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0e
 
 作为固定底座。默认构建流程很简单：
 
-1. 校验 `native_ext/prebuilt/` 中 4 个已验证用户态 `.so` 的 SHA256；
+1. 校验 `native_ext/prebuilt/` 中 7 个已验证用户态 `.so` 的 SHA256；
 2. `docker build` 对镜像内原始 SGLang 应用 `sglang_dflash2_k100ai.patch`；
-3. 放入 gfx928 correctness、W8A8、TP4、U036、BA24、q16/longctx-v8 等 runtime patch；
-4. 安装 7 个 longctx-v8 exact tune-cache JSON（M8192/M16384/M3968 family）；
-5. 把 4 个预编译 `.so` 放入固定 runtime 路径并逐个检查；
+3. 放入 gfx928 correctness、W8A8、TP4、U036、BA24、q16/当前长上下文方案 等 runtime patch；
+4. 安装 7 个 当前长上下文方案 exact tune-cache JSON（M8192/M16384/M3968 family）；
+5. 把 7 个预编译 `.so` 放入固定 runtime 路径并逐个检查；
 6. 保存 U036/q16 所需的 SourceFind Triton GQA 原始实现并设置运行时入口。
 
 普通用户直接执行：
@@ -508,7 +492,7 @@ RENDER3=/dev/dri/renderDxxx
 PORT=8068
 ```
 
-v1.0 longctx-v8 正式默认：
+TP4 正式默认：
 
 ```text
 U036_PROFILE=ranklocal_bm64_w4_preloadv
@@ -534,7 +518,7 @@ selector top-k = 16
 
 # 7. 镜像内置的稳定版启动参数
 
-以下是 2026-08-21 longctx-v8 最终 cold 十档与长上下文质量门实际使用的核心配置。
+以下是正式 cold 十档与长上下文质量门实际使用的核心配置。
 
 ```text
 TP=4
@@ -576,7 +560,7 @@ export SGLANG_Q38_NATIVE_GDN_SPLIT_M1=1
 export SGLANG_Q38_DEEP_DOWN_GEMV_M1=1
 ```
 
-v1.0 派生镜像已经把 SGLang patch 安装进 site-packages；运行时只需要让冻结的 DFlash2/q16 composition 先于其它 Python 路径：
+当前派生镜像已经把 SGLang patch 安装进 site-packages；运行时只需要让冻结的 DFlash2/q16 composition 先于其它 Python 路径：
 
 ```bash
 export PYTHONPATH=/data/qwen38-dflash2-k100ai/runtime_patch_dflash_tp4_q16k_agent128k_v1${PYTHONPATH:+:$PYTHONPATH}
@@ -590,7 +574,7 @@ python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecu
   --model-path /data/my_models/Qwen/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
   --host 0.0.0.0 \
   --port 8068 \
-  --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP4-Agent128K \
+  --served-model-name Qwen3.8-27B-W8A8-DFlash2-TP4 \
   --chat-template /data/qwen38-dflash2-k100ai/runtime_assets/qwen38_chat_template.jinja \
   --dtype bfloat16 \
   --kv-cache-dtype bfloat16 \
@@ -624,7 +608,7 @@ python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecu
 
 ---
 
-# 8. v1.0 longctx-v8 正式十档结果
+# 8. TP4 正式十档结果
 
 统一 contract：**每档先 flush Radix、single request、cold prefill、output256、512→257.9K**。十档均 `contaminated=false`，整轮完成后容器 `restart=0 / OOM=false / health=200`。
 
@@ -649,11 +633,11 @@ python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecu
 - 128K：**49.45s TTFT / 88.68 tok/s**；
 - 257.9K：**132.25s TTFT / 72.49 tok/s**。
 
-正式机器可读证据：[results/tp4_longctx_v8_qtail8_fixed_formal10_20260821.json](results/tp4_longctx_v8_qtail8_fixed_formal10_20260821.json)。
+正式机器可读证据：[results/tp4_10level_20260821.json](results/tp4_10level_20260821.json)。
 
-![TP4 longctx-v8 formal 10-level](assets/tp4_longctx_v8_10level.png)
+![TP4 当前长上下文方案 formal 10-level](assets/tp4_10level.png)
 
-这组数据来自**同一个 v1.0 配置**，不是从不同实验里挑最好点拼接。
+这组数据来自**同一个正式配置**，不是从不同实验里挑最好点拼接。
 
 ---
 
@@ -676,9 +660,9 @@ python3 -u /data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecu
 
 ---
 
-# 10. longctx-v8 的长上下文实现
+# 10. 长上下文实现
 
-v1.0 不再使用“整条曲线固定一个 chunk 大小”的策略，而是按已经验证的上下文区间做确定性路由：
+当前方案不再使用“整条曲线固定一个 chunk 大小”的策略，而是按已经验证的上下文区间做确定性路由：
 
 1. **128K 以内优先 q16K prefill**，full-attention 使用 `BM64/BN64/w4/preloadV` 和长 KV split4；
 2. **仅在 `KV==131072`** 对 q16 做 scheduler-equivalent `2×q8` 数值 repair，避免阈值策略外溢到更长上下文；
@@ -697,14 +681,14 @@ q3948 的 ceil-block 修复是稳定性的关键。旧实验用 floor block coun
 
 三轮均 `restart=0 / OOM=false`。原始 artifacts：
 
-- [stability run1](results/tp4_longctx_v8_qtail8_fixed_stability1_257900_o256_20260821.json)
-- [stability run2](results/tp4_longctx_v8_qtail8_fixed_stability2_257900_o256_20260821.json)
-- [stability run3](results/tp4_longctx_v8_qtail8_fixed_stability3_257900_o256_20260821.json)
+- [stability run1](results/tp4_257900_stability_1_20260821.json)
+- [stability run2](results/tp4_257900_stability_2_20260821.json)
+- [stability run3](results/tp4_257900_stability_3_20260821.json)
 
 质量门同样使用真实长上下文：
 
-- 128K thinking needle：精确返回 `Q38U036V2P0K100AI`，见 [artifact](results/tp4_longctx_v8_qtail8_fixed_128k_midneedle_20260821.json)；
-- 257900-token exact retrieval：在 95% 位置植入唯一 access code，模型精确返回 `Q38QTAIL8K100AI`，见 [artifact](results/tp4_longctx_v8_qtail8_fixed_quality257900_p95_20260821.json)。
+- 128K thinking needle：精确返回 `Q38U036V2P0K100AI`，见 [artifact](results/tp4_128k_midneedle_20260821.json)；
+- 257900-token exact retrieval：在 95% 位置植入唯一 access code，模型精确返回 `Q38QTAIL8K100AI`，见 [artifact](results/tp4_257900_p95_needle_20260821.json)。
 
 ---
 
@@ -716,7 +700,7 @@ q3948 的 ceil-block 修复是稳定性的关键。旧实验用 floor block coun
 4. 宿主机驱动、DTK、ACS、IOMMU、renderD 映射不要盲目照抄测试机；本项目不会替你安装或修复这些系统组件。
 5. DFlash2 提高 decode，但冷长 prompt 仍需生成 draft-side KV，因此它不是免费的 TTFT 加速器。
 6. `q3948 split8` 和 raw q8 paged verifier 都是**严格 shape/geometry fail-closed** 的 K100AI 特化；换模型、换 head ratio、换 page size 或 dtype 时不要直接放宽限制，必须重新做 correctness/stability gate。
-7. v1.0 的 257900-tail fast path只对精确 audited geometry 生效；其它非整齐超长尾块会回退到正确 parent，而不是猜测使用同一 split。
+7. 当前 257900-tail fast path只对精确 audited geometry 生效；其它非整齐超长尾块会回退到正确 parent，而不是猜测使用同一 split。
 
 ---
 
@@ -728,4 +712,4 @@ q3948 的 ceil-block 修复是稳定性的关键。旧实验用 floor block coun
 
 为了方便他人复现，仓库继续只分发用户态 patchset、tune cache、native extension 与机器可读 evidence；基础镜像、target 权重和 DFlash2 权重仍从上游固定版本获取。
 
-**longctx-v8 已完成整条 cold 十档、128K/257.9K 质量门和多轮稳定性门，因此本页对应正式 v1.0.0 TP4 Champion。**
+**TP4 已完成整条 cold 十档、128K/257.9K 质量门和多轮稳定性门。**

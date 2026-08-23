@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "classification": "TP1 / TP2 / TP4 public 10-level comparison",
+  "createdAt": "2026-08-23",
+  "contract": "canonical corpus / output256 / DFlash2 / cold / independent cache flush / uncontaminated",
+  "profiles": {
+    "tp1": {
+      "gpu_count": 1,
+      "authority": "results/tp1_acceptance_20260823.json"
+    },
+    "tp2": {
+      "gpu_count": 2,
+      "authority": "results/tp2_acceptance_20260822.json"
+    },
+    "tp4": {
+      "gpu_count": 4,
+      "authority": "results/tp4_10level_20260821.json"
+    }
+  },
+  "rows": [
+    {
+      "prompt_tokens": 512,
+      "tp1": {
+        "ttft_s": 5.933724592032377,
+        "decode_tps": 23.918874312398227,
+        "total_s": 16.594761423009913,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 0.42092403501737863,
+        "decode_tps": 70.60560550510122,
+        "total_s": 4.032535296981223,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 0.40899235900724307,
+        "decode_tps": 100.74476877832667,
+        "total_s": 2.9401411530561745,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 2048,
+      "tp1": {
+        "ttft_s": 7.212603573978413,
+        "decode_tps": 28.652256648410052,
+        "total_s": 16.11242612998467,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 1.621987454011105,
+        "decode_tps": 86.07683195588683,
+        "total_s": 4.584457078017294,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 1.0775338720413856,
+        "decode_tps": 119.02696375892408,
+        "total_s": 3.2199055830133148,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 4096,
+      "tp1": {
+        "ttft_s": 12.409790865029208,
+        "decode_tps": 25.65269507389061,
+        "total_s": 22.35026687604841,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 4.146558630978689,
+        "decode_tps": 77.09327776429099,
+        "total_s": 7.454240018967539,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 2.3625508319819346,
+        "decode_tps": 95.64503526618559,
+        "total_s": 5.028658898023423,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 8192,
+      "tp1": {
+        "ttft_s": 8.420847508998122,
+        "decode_tps": 27.58313271153597,
+        "total_s": 17.665627739974298,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 3.8915261499932967,
+        "decode_tps": 83.24308702672434,
+        "total_s": 6.954843587009236,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 2.3998142709606327,
+        "decode_tps": 110.88030358878335,
+        "total_s": 4.699591523967683,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 12288,
+      "tp1": {
+        "ttft_s": 13.738582833029795,
+        "decode_tps": 28.287226624825006,
+        "total_s": 22.753252365044318,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 12.924182615010068,
+        "decode_tps": 85.26955374370206,
+        "total_s": 15.914699028013274,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 4.119359871023335,
+        "decode_tps": 91.06249556904257,
+        "total_s": 6.919634543999564,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 16384,
+      "tp1": {
+        "ttft_s": 16.547843049047515,
+        "decode_tps": 26.59277713446592,
+        "total_s": 26.136912995018065,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 9.591446157020982,
+        "decode_tps": 81.26932958322834,
+        "total_s": 12.729161225026473,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 4.60291784896981,
+        "decode_tps": 113.09807290359873,
+        "total_s": 6.857598175993189,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 32768,
+      "tp1": {
+        "ttft_s": 34.012078717001714,
+        "decode_tps": 27.2971245316463,
+        "total_s": 43.35372199903941,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 23.228751602000557,
+        "decode_tps": 79.05002878436842,
+        "total_s": 26.454556879005395,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 10.011726170952898,
+        "decode_tps": 128.24982523283526,
+        "total_s": 12.000032973999623,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 65536,
+      "tp1": {
+        "ttft_s": 72.65566687803948,
+        "decode_tps": 31.677128677167115,
+        "total_s": 80.70563891303027,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 40.35576285701245,
+        "decode_tps": 73.32262696664907,
+        "total_s": 43.8335433260072,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 22.18403144698823,
+        "decode_tps": 102.20538450003404,
+        "total_s": 24.679007628990803,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 131072,
+      "tp1": {
+        "ttft_s": 174.68197776796296,
+        "decode_tps": 33.89639574328167,
+        "total_s": 182.2049015009543,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 90.65579858794808,
+        "decode_tps": 49.98291334086381,
+        "total_s": 95.75754202296957,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 49.44954462000169,
+        "decode_tps": 88.68246510719584,
+        "total_s": 52.324972131988034,
+        "contaminated": false
+      }
+    },
+    {
+      "prompt_tokens": 257900,
+      "tp1": {
+        "ttft_s": 466.4388687160099,
+        "decode_tps": 24.30335636749484,
+        "total_s": 476.9312466470292,
+        "contaminated": false
+      },
+      "tp2": {
+        "ttft_s": 234.28290714201285,
+        "decode_tps": 53.097205305473835,
+        "total_s": 239.08541978901485,
+        "contaminated": false
+      },
+      "tp4": {
+        "ttft_s": 132.24914795701625,
+        "decode_tps": 72.49478389422394,
+        "total_s": 135.7666424069903,
+        "contaminated": false
+      }
+    }
+  ]
+}

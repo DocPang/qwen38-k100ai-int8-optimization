@@ -1,25 +1,55 @@
+x-common: &common
+  image: ${IMAGE_TAG:-qwen38-k100ai-int8-series:local}
+  network_mode: host
+  ipc: host
+  restart: unless-stopped
+  security_opt:
+    - label=disable
+  volumes:
+    - ${TARGET_MODEL}:/models/target:ro
+    - ${DRAFT_MODEL}:/models/draft:ro
+    - /opt/hyhal:/opt/hyhal:ro
+
 services:
-  qwen38-dflash2-tp4:
-    image: qwen38-w8a8-k100ai-dflash2-tp4:local
-    container_name: qwen38-w8a8-k100ai-dflash2-tp4
-    network_mode: host
-    ipc: host
-    restart: unless-stopped
-    security_opt:
-      - label=disable
+  qwen38-tp1:
+    <<: *common
+    profiles: ["tp1"]
+    container_name: qwen38-tp1
+    devices:
+      - /dev/kfd:/dev/kfd
+      - ${RENDER0}:${RENDER0}
+    environment:
+      PROFILE: tp1
+      HIP_VISIBLE_DEVICES: "0"
+      PORT: ${TP1_PORT:-8090}
+
+  qwen38-tp2:
+    <<: *common
+    profiles: ["tp2"]
+    container_name: qwen38-tp2
+    devices:
+      - /dev/kfd:/dev/kfd
+      - ${RENDER0}:${RENDER0}
+      - ${RENDER1}:${RENDER1}
+    environment:
+      PROFILE: tp2
+      HIP_VISIBLE_DEVICES: "0,1"
+      PORT: ${TP2_PORT:-8062}
+      CUSTOM_AR: ${CUSTOM_AR:-1}
+      P2P: ${P2P:-1}
+
+  qwen38-tp4:
+    <<: *common
+    profiles: ["tp4"]
+    container_name: qwen38-tp4
     devices:
       - /dev/kfd:/dev/kfd
       - ${RENDER0}:${RENDER0}
       - ${RENDER1}:${RENDER1}
       - ${RENDER2}:${RENDER2}
       - ${RENDER3}:${RENDER3}
-    volumes:
-      - ${TARGET_MODEL}:/models/target:ro
-      - ${DRAFT_MODEL}:/models/draft:ro
-      - /opt/hyhal:/opt/hyhal:ro
     environment:
+      PROFILE: tp4
       HIP_VISIBLE_DEVICES: "0,1,2,3"
-      PORT: ${PORT:-8068}
-      SGLANG_Q38_TP4_U036_PROFILE: ${U036_PROFILE:-ranklocal_bm64_w4_preloadv}
-      SGLANG_Q38_TP4_U036_SPLIT_KV: ${U036_SPLIT_KV:-4}
+      PORT: ${TP4_PORT:-8068}
       CUSTOM_AR: ${CUSTOM_AR:-1}

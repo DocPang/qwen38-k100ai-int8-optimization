@@ -129,7 +129,7 @@ cd /data/qwen38-offline/qwen38-w8a8-k100ai-dflash2-tp4
 BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 ```
 
-默认 `build_image.sh` 不会启动编译容器，只会校验仓库内 `native_ext/prebuilt/` 的 4 个已验证 `.so`，随后使用本地 SourceFind 底座构建薄优化镜像。
+默认 `build_image.sh` 不会启动编译容器，只会校验 v1.1.0 系列仓库内 `native_ext/prebuilt/` 的 7 个已验证 `.so`（覆盖 TP1/TP2/TP4 的公共与 profile-specific native 依赖），随后使用本地 SourceFind 底座构建薄优化镜像。
 
 如果你使用的不是本文锁定的 SourceFind/DTK 组合，或者明确希望从源码重编，可选执行：
 

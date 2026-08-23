@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "classification": "TP4 DFlash2 long-context v8 fixed-qtail8 formal cold 10-level authority; each level independently flushes Radix cache",
   "status": "complete",
-  "container": "q38-dflash2-tp4-longctx-v8-qtail8-fixed-gpu4567",
+  "container": "qwen38-sglang-tp4",
   "port": 8068,
   "model": "Qwen3.8-27B-W8A8-DFlash2-TP4-LongCtx-v8",
   "outputTokens": 256,
@@ -283,23 +283,24 @@
     }
   ],
   "sourceArtifacts": [
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_512_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_2048_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_4096_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_8192_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_12288_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_16384_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_32768_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_65536_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_131072_o256_20260821.json",
-    "results/tp4_longctx_v8_qtail8_fixed_formal10_257900_o256_20260821.json"
+    "results/tp4_formal10_512_o256_20260821.json",
+    "results/tp4_formal10_2048_o256_20260821.json",
+    "results/tp4_formal10_4096_o256_20260821.json",
+    "results/tp4_formal10_8192_o256_20260821.json",
+    "results/tp4_formal10_12288_o256_20260821.json",
+    "results/tp4_formal10_16384_o256_20260821.json",
+    "results/tp4_formal10_32768_o256_20260821.json",
+    "results/tp4_formal10_65536_o256_20260821.json",
+    "results/tp4_formal10_131072_o256_20260821.json",
+    "results/tp4_formal10_257900_o256_20260821.json"
   ],
   "summary": {
     "medianDecodeTps": 101.47507663918036,
     "medianTtftS": 4.361138859996572,
     "maxPromptTokens": 257900
   },
-  "contract": "tp4_longctx_v8_qtail8_fixed_formal10_v1",
+  "contract": "tp4_public_10level",
   "mode": "DFLASH2",
-  "output_tokens": 256
+  "output_tokens": 256,
+  "source_files": []
 }

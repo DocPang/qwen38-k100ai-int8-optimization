@@ -1,7 +1,7 @@
 # Qwen3.8-27B INT8/W8A8 on K100AI
 
 > **SGLang performance optimization for Hygon K100AI**
-> TP1 / TP4 · DFlash2 · Agent long context · gfx928 native kernels
+> TP1 / TP2 / TP4 · DFlash2 · Agent long context · gfx928 native kernels
 
 > ⚠️ **免责声明 / 风险提示**
 >
@@ -13,13 +13,13 @@
 
 这是一个面向 **Hygon K100AI / gfx928** 的 Qwen3.8-27B **INT8/W8A8 推理优化总项目**。
 
-仓库不再把某一个并行度或某一种投机算法写进项目名称。TP1、TP4、DFlash2、长上下文 prefill、native INT8 kernel 都是同一个优化栈里的不同 profile / 技术组件。
+仓库不再把某一个并行度或某一种投机算法写进项目名称。TP1、TP2、TP4、DFlash2、长上下文 prefill、native INT8 kernel 都是同一个优化栈里的不同 profile / 技术组件。
 
 当前主要目标是：
 
 - 在 K100AI 上稳定运行 Qwen3.8-27B SmoothQuant W8A8；
 - 针对真实 Agent 的 32K–128K 长上下文优化 TTFT 与 decode；
-- 提供单卡和多卡两种可复现配置；
+- 提供 TP1 / TP2 / TP4 三种可复现配置；
 - DFlash2 投机解码、Radix Cache、gfx928 native kernel 与 correctness 修复统一维护；
 - 所有正式性能结果必须通过固定 prompt、output256、无污染、quality/correctness 门禁。
 
@@ -29,10 +29,30 @@
 
 | Profile | GPU | 正式验收范围 | 代表性能 | 适合谁 | 状态 |
 |---|---:|---:|---|---|---|
-| **[TP1 Agent128K](TP1.md)** | 1× K100AI | 512 → 128K | 16K **47.87 tok/s** · 64K **31.23** · 128K **32.88** | 卡少、单用户 Agent、优先省 GPU | **ACCEPTED** |
-| **[TP4 Agent256K](TP4.md)** | 4× K100AI | 512 → 257.9K | 16K **113.10 tok/s** · 64K **102.21** · 128K **88.68** · 257.9K **72.49** | 长上下文、高 decode、长期主服务 | **CHAMPION** |
+| **[TP1](TP1.md)** | 1× K100AI | 512 → 257.9K | 64K **72.66s / 31.68 tok/s** · 128K **174.68s / 33.90** · 257.9K **466.44s / 24.30** | GPU 最省、单用户 Agent | **ACCEPTED** |
+| **[TP2](TP2.md)** | 2× K100AI | 512 → 257.9K | 64K **40.36s / 73.32 tok/s** · 128K **90.66s / 49.98** · 257.9K **234.28s / 53.10** | 性能 / GPU 成本平衡 | **ACCEPTED** |
+| **[TP4](TP4.md)** | 4× K100AI | 512 → 257.9K | 64K **22.18s / 102.21 tok/s** · 128K **49.45s / 88.68** · 257.9K **132.25s / 72.49** | 长上下文、高 decode、长期主服务 | **CHAMPION** |
 
-> TP1 和 TP4 的正式十档范围并不完全相同，因此不要直接拿"十档平均值"做横向排名。更有意义的是比较相同上下文下的 TTFT / decode，以及你的 GPU 成本。
+> 三个 Profile 使用同一套 target / draft、同一测试语料和 output256 口径。选择时优先看相同上下文下的 TTFT / decode，再结合 GPU 成本。
+
+### TP1 / TP2 / TP4 正式十档
+
+统一口径：**canonical corpus / output=256 / DFlash2 / cold / 每档独立 cache flush / contaminated=false**。
+
+| 上下文 | TP1 TTFT | TP1 Decode | TP2 TTFT | TP2 Decode | TP4 TTFT | TP4 Decode |
+|---:|---:|---:|---:|---:|---:|---:|
+| 512 | 5.93s | 23.92 | 0.42s | 70.61 | 0.41s | 100.74 |
+| 2K | 7.21s | 28.65 | 1.62s | 86.08 | 1.08s | 119.03 |
+| 4K | 12.41s | 25.65 | 4.15s | 77.09 | 2.36s | 95.65 |
+| 8K | 8.42s | 27.58 | 3.89s | 83.24 | 2.40s | 110.88 |
+| 12K | 13.74s | 28.29 | 12.92s | 85.27 | 4.12s | 91.06 |
+| 16K | 16.55s | 26.59 | 9.59s | 81.27 | 4.60s | 113.10 |
+| 32K | 34.01s | 27.30 | 23.23s | 79.05 | 10.01s | 128.25 |
+| 64K | 72.66s | 31.68 | 40.36s | 73.32 | 22.18s | 102.21 |
+| 128K | 174.68s | 33.90 | 90.66s | 49.98 | 49.45s | 88.68 |
+| 257.9K | 466.44s | 24.30 | 234.28s | 53.10 | 132.25s | 72.49 |
+
+完整 Total、scaling 与质量门见 **[PERFORMANCE.md](PERFORMANCE.md)**。机器可读统一数据：`results/tp1_tp2_tp4_10level_20260823.json`。
 
 ---
 
@@ -42,8 +62,8 @@
 
 | 方式 | 说明 | 需要传输的大小 | 是否需要 build | 推荐 |
 |---|---|---:|---:|---|
-| **A. 完整成品镜像** | 直接导入已验收的统一 Docker 镜像，load 即用 | ~5.67 GiB（压缩） | 否 | ⭐⭐⭐⭐⭐ |
-| **B. 官方镜像 + 补丁构建** | 拉取 SourceFind 官方基础镜像，打上小补丁（patchset + 预编译 .so），docker build | 官方镜像 + ~1.3 MB 补丁 | 是（docker build） | ⭐⭐⭐⭐ |
+| **A. 完整成品镜像** | 直接导入已验收的统一 Docker 镜像，load 即用 | 5.65 GiB（压缩） | 否 | ⭐⭐⭐⭐⭐ |
+| **B. 官方镜像 + 补丁构建** | 拉取 SourceFind 官方基础镜像，打上小补丁（patchset + 预编译 .so），docker build | 官方镜像 + ~2.3 MB 补丁 | 是（docker build） | ⭐⭐⭐⭐ |
 | **C. 全源码构建** | 同 B，但 native extensions 从源码重新编译 | 官方镜像 + 源码 | 是（docker build + 编译） | ⭐⭐ |
 
 - 普通部署选 **A**（最快）或 **B**（已有官方镜像时最省流量）。
@@ -54,40 +74,51 @@
 
 ### 方式 A：完整成品镜像（推荐）
 
-**说明**：使用已经验收的 **TP1 / TP4 统一 Docker 运行时镜像**，导入后直接运行，不需要任何 build 步骤。
+**说明**：使用已经验收的 **TP1 / TP2 / TP4 统一 Docker 运行时镜像**，导入后直接运行，不需要任何 build 步骤。
 
 #### 1. 获取镜像压缩包
 
-- 夸克网盘：[Qwen3.8-K100AI-Unified-20260822](https://pan.quark.cn/s/1e9abeef509a?pwd=duZx)
-- 提取码：`duZx`
-- 文件：`qwen38-k100ai-int8-unified-20260822.docker.tar.zst`
-- 大小：约 **5.67 GiB**（压缩后）/ **31.86 GiB**（Docker 镜像）
-- Docker tag：`qwen38-k100ai-int8:unified-20260822`
-- SHA256：`e3e2874939b540a935191939fe6309e583a7bf1808f6341f07aba447740d7557`
+- 文件：`qwen38-k100ai-int8-unified-20260823.docker.tar.zst`
+- 大小：**5.65 GiB（6,065,184,632 bytes）**（压缩后）/ **约 31.70 GB（Docker image `.Size`）**（Docker 镜像）
+- Docker tag：`qwen38-k100ai-int8:unified-20260823`
+- SHA256：`6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14`
+- 下载：**[GitHub Release v1.1.0](https://github.com/DocPang/qwen38-k100ai-int8-optimization/releases/tag/v1.1.0)（4 个分卷附件，下载后合并）**
 
+> GitHub Release 由于单附件大小限制，将完整镜像拆成 `part-00` ~ `part-03` 四个分卷。四个分卷下载完成后先合并：
+>
+> ```bash
+> cat qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-00 \
+>     qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-01 \
+>     qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-02 \
+>     qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-03 \
+>   > qwen38-k100ai-int8-unified-20260823.docker.tar.zst
+> ```
+>
+> 分卷 SHA256 见 [`full_images/FULL_IMAGE_PARTS_SHA256.txt`](full_images/FULL_IMAGE_PARTS_SHA256.txt)。
+>
 > 离线环境：先在有网机器下载，再通过 rsync / U盘 / scp 拷贝到目标服务器。
 
 #### 2. 校验完整性
 
 ```bash
 # SHA256 校验
-echo "e3e2874939b540a935191939fe6309e583a7bf1808f6341f07aba447740d7557  qwen38-k100ai-int8-unified-20260822.docker.tar.zst" | sha256sum -c -
+echo "6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14  qwen38-k100ai-int8-unified-20260823.docker.tar.zst" | sha256sum -c -
 
 # zstd 完整性
-zstd -t qwen38-k100ai-int8-unified-20260822.docker.tar.zst
+zstd -t qwen38-k100ai-int8-unified-20260823.docker.tar.zst
 ```
 
 #### 3. 导入 Docker
 
 ```bash
-zstd -dc qwen38-k100ai-int8-unified-20260822.docker.tar.zst | docker load
+zstd -dc qwen38-k100ai-int8-unified-20260823.docker.tar.zst | docker load
 ```
 
 确认：
 
 ```bash
 docker images | grep qwen38-k100ai-int8
-# 应看到: qwen38-k100ai-int8  unified-20260822  ...  31.86GB
+# 应看到: qwen38-k100ai-int8  unified-20260823
 ```
 
 #### 4. 准备模型权重
@@ -111,7 +142,9 @@ huggingface-cli download z-lab/Qwen3.8-27B-DFlash2 \
   --local-dir /data/models/Qwen3.8-27B-DFlash2
 ```
 
-> 离线环境：模型权重同样先在有网机器下载再拷贝到目标服务器。
+> **不需要下载 Qwen3.8 BF16/FP16 Base 权重。** 运行所需的 processor metadata 已直接打进镜像/patchset；用户只需要上面两份模型：W8A8 target + DFlash2 draft。
+>
+> 离线环境：这两份模型权重同样先在有网机器下载再拷贝到目标服务器。
 
 #### 5. 启动服务
 
@@ -134,7 +167,27 @@ docker run -d \
   -e PROFILE=tp4 \
   -e HIP_VISIBLE_DEVICES=0,1,2,3 \
   -e PORT=8068 \
-  qwen38-k100ai-int8:unified-20260822
+  qwen38-k100ai-int8:unified-20260823
+```
+
+**TP2（双卡）**：
+
+```bash
+docker run -d \
+  --name qwen38-tp2 \
+  --network host --ipc host \
+  --restart unless-stopped \
+  --security-opt label=disable \
+  --device /dev/kfd:/dev/kfd \
+  --device /dev/dri/renderD128:/dev/dri/renderD128 \
+  --device /dev/dri/renderD129:/dev/dri/renderD129 \
+  -v /opt/hyhal:/opt/hyhal:ro \
+  -v /path/to/target:/models/target:ro \
+  -v /path/to/draft:/models/draft:ro \
+  -e PROFILE=tp2 \
+  -e HIP_VISIBLE_DEVICES=0,1 \
+  -e PORT=8062 \
+  qwen38-k100ai-int8:unified-20260823
 ```
 
 **TP1（单卡）**：
@@ -153,7 +206,7 @@ docker run -d \
   -e PROFILE=tp1 \
   -e HIP_VISIBLE_DEVICES=0 \
   -e PORT=8090 \
-  qwen38-k100ai-int8:unified-20260822
+  qwen38-k100ai-int8:unified-20260823
 ```
 
 > **renderD 编号**：`renderD128`–`renderD131` 是示例，必须根据你机器的实际拓扑替换。用 `ls /dev/dri/` 查看。
@@ -163,7 +216,7 @@ docker run -d \
 #### 6. 验证
 
 ```bash
-# 等待模型加载（TP4 约 3-5 分钟，TP1 约 2-3 分钟）
+# 等待模型加载（不同 Profile / 机器环境会有差异）
 docker logs -f --tail=50 qwen38-tp4
 
 # 健康检查
@@ -173,21 +226,21 @@ curl http://localhost:8068/health
 # 测试请求
 curl http://localhost:8068/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"Qwen3.8-27B-W8A8-DFlash2-TP4-LongCtx-v8","messages":[{"role":"user","content":"你好"}],"max_tokens":32,"temperature":0}'
+  -d '{"model":"Qwen3.8-27B-W8A8-DFlash2-TP4","messages":[{"role":"user","content":"你好"}],"max_tokens":32,"temperature":0}'
 ```
 
 ---
 
 ### 方式 B：官方镜像 + 补丁构建
 
-**说明**：拉取 SourceFind 官方 K100AI 基础镜像，打上本项目的**小补丁**（runtime patchset + 预编译 native extensions），然后 `docker build`。适合已经有官方镜像、或不想传输 5.67 GiB 完整镜像的场景。
+**说明**：拉取 SourceFind 官方 K100AI 基础镜像，打上本项目的**小补丁**（runtime patchset + 预编译 native extensions），然后 `docker build`。适合已经有官方镜像、或不想传输 5.65 GiB 完整镜像的场景。
 
-**补丁内容**（合计约 1.3 MB）：
+**补丁内容**（合计约 2.3 MB）：
 
 | 文件 | 大小 | 内容 |
 |---|---:|---|
-| `qwen38-k100ai-patchset.tar.gz` | 57 KB | runtime patches（sitecustomize、repair、SGLang overlay） |
-| `native_ext/prebuilt/*.so` | ~1.2 MB | 4 个预编译 gfx928 用户态 HIP 扩展 |
+| `qwen38-k100ai-patchset.tar.gz` | ~86 KB | runtime patches（sitecustomize、repair、SGLang overlay） |
+| `native_ext/prebuilt/*.so` | ~2.1 MB | 7 个预编译 gfx928 用户态 HIP 扩展 |
 
 #### 1. 获取官方基础镜像
 
@@ -231,7 +284,7 @@ bash build_image.sh
 ```
 
 构建过程：
-1. 校验 4 个预编译 `.so` 的 SHA256；
+1. 校验 7 个预编译 `.so` 的 SHA256；
 2. 以官方基础镜像为基底 `docker build`；
 3. 解压 patchset 到 `/opt/qwen38-k100ai/`，执行 `install_into_image.sh`；
 4. 拷贝预编译 native extensions 到 `/data/qwen38-27b-k100ai-int8-opt/native_ext/`。
@@ -254,11 +307,11 @@ bash build_image.sh
 # 方式 B：使用预编译 .so（默认）
 bash build_image.sh
 
-# 方式 C：从源码重编 4 个 native extensions
+# 方式 C：从源码重编 7 个 native extensions
 REBUILD_NATIVE=1 bash build_image.sh
 ```
 
-`REBUILD_NATIVE=1` 会启动一个临时编译容器（无 GPU、无网络、非 privileged），在官方基础镜像内用 DTK 编译 4 个 HIP `.so`，输出到 `.build/native/`，然后正常 `docker build`。
+`REBUILD_NATIVE=1` 会启动一个临时编译容器（无 GPU、无网络、非 privileged），在官方基础镜像内用 DTK 编译 7 个 HIP `.so`，输出到 `.build/native/`，然后正常 `docker build`。
 
 > 编译容器不修改宿主机驱动。如果编译失败，回退到方式 B 的预编译 `.so`。
 
@@ -268,12 +321,13 @@ REBUILD_NATIVE=1 bash build_image.sh
 
 ### Profile 详情
 
-- **只有 1 张 K100AI** → 看 **[TP1 Agent128K](TP1.md)**
-- **有 4 张 K100AI** → 看 **[TP4 Agent256K](TP4.md)**
+- **只有 1 张 K100AI** → 看 **[TP1](TP1.md)**
+- **有 2 张 K100AI** → 看 **[TP2](TP2.md)**
+- **有 4 张 K100AI** → 看 **[TP4](TP4.md)**
 
 TP4 离线算力服务器部署见：**[TP4 离线部署教程](TP4_OFFLINE_DEPLOY.md)**。
 
-![TP4 longctx-v8 formal 10-level](assets/tp4_longctx_v8_10level.png)
+![TP4 formal 10-level](assets/tp4_10level.png)
 
 ---
 
@@ -283,19 +337,19 @@ TP4 离线算力服务器部署见：**[TP4 离线部署教程](TP4_OFFLINE_DEPL
 
 | 层 | 内容 |
 |---|---|
-| **Profile** | TP1 / TP4：不同 GPU 数量、context、运行参数与验收结果 |
+| **Profile** | TP1 / TP2 / TP4：不同 GPU 数量、context、运行参数与验收结果 |
 | **Common runtime** | Qwen3.8 W8A8 compatibility、correctness repair、Radix Cache、DFlash2 backport |
 | **Native kernels** | K100AI/gfx928 INT8 GEMV、LDS-x 等用户态 HIP 扩展 |
 | **Long-context** | chunked prefill、paged/varlen repair、U036、Agent prefix cache |
 | **Evidence** | 固定十档、quality gate、needle、无污染与稳定性结果 |
 
-这样以后新增 TP2、TP8、MTP 或新的 speculative algorithm，只增加一个 profile / 技术模块，不再重开仓库。
+这样以后新增 TP8、MTP 或新的 speculative algorithm，只增加一个 profile / 技术模块，不再重开仓库。
 
 ---
 
-## 为什么不是两个 GitHub 仓库
+## 为什么不是三个 GitHub 仓库
 
-TP1 和 TP4 的共同部分远大于差异：
+TP1、TP2 和 TP4 的共同部分远大于差异：
 
 - 同一套 Qwen3.8-27B W8A8 target；
 - 同一份 DFlash2 draft；
@@ -310,13 +364,12 @@ TP1 和 TP4 的共同部分远大于差异：
 
 > **Qwen3.8-27B INT8/W8A8 on K100AI**
 >
-> Profile = TP1 / TP4 / future TP2 / TP8
+> Profile = TP1 / TP2 / TP4 / future TP8
 
 ---
 
 ## 上游与固定版本
 
-- Qwen base: [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B)
 - W8A8 target: [Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8](https://huggingface.co/Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8)（rev `417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e`）
 - DFlash2 draft: [z-lab/Qwen3.8-27B-DFlash2](https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2)（rev `50307d4c4cde6860d4eee73e2547cd786fe8e8a4`）
 - DFlash reference: `z-lab/dflash`（算法参考，私有仓库，无需下载）
@@ -335,11 +388,11 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 ## 发布策略
 
 - **`main`**：当前推荐稳定代码与文档；
-- **TP1 / TP4**：在同一仓库内独立冻结 profile；
+- **TP1 / TP2 / TP4**：在同一仓库内独立冻结 profile；
 - **release tag**：只在 profile 通过正式 quality + 十档 + stability 门后发布；
 - 实验分支和 microbench 不作为 README 的"冠军数据"。
 
-当前 TP4 longctx-v8 已完成完整公开打包、冷十档、长上下文质量和稳定性门禁，并作为当前 `main` 推荐 Champion；TP1 已通过 Agent128K acceptance，继续作为单卡 profile 维护。
+当前 TP1 / TP2 / TP4 均已完成正式十档；TP1 / TP2 通过 short semantic、Arithmetic20 与 257.9K semantic / P95 needle，TP4 通过长上下文质量与稳定性门禁。
 
 ---
 
@@ -347,8 +400,9 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 
 | 版本 | 日期 | 主要更新 |
 |---|---|---|
+| **v1.1.0** | 2026-08-23 | TP1 / TP2 / TP4 三档统一正式发布；TP1 更新为当前最优长上下文方案；TP2 首次正式公开；统一 `PROFILE=tp1\|tp2\|tp4`；更新完整镜像与十档对比。 |
 | **v1.0.1** | 2026-08-22 | 发布 TP1 / TP4 **统一完整 Docker 镜像**；`PROFILE=tp1\|tp4` 切换；增加夸克网盘直下与 SHA256；TP1 真机 smoke 通过；统一镜像纳入 DFlash2 sampling 防崩保护。 |
-| **v1.0.0** | 2026-08-21 | TP4 longctx-v8 正式 Champion：128K 49.45s / 88.68 tok/s，257.9K 132.25s / 72.49 tok/s；完成 cold 十档、质量与稳定性门禁。 |
+| **v1.0.0** | 2026-08-21 | TP4 正式 Champion：128K 49.45s / 88.68 tok/s，257.9K 132.25s / 72.49 tok/s；完成 cold 十档、质量与稳定性门禁。 |
 | **v0.2.0** | 2026-08-21 | 仓库重构为统一 K100AI INT8/W8A8 优化项目，TP1 / TP4 作为 profile 维护。 |
 | **v0.1.3** | 2026-08-21 | 默认使用已验证的预编译 K100AI 用户态 native extensions，源码重编改为可选路径。 |
 | **v0.1.2** | 2026-08-21 | 增加安全的 K100AI native extension 源码构建流程，不修改宿主机驱动。 |

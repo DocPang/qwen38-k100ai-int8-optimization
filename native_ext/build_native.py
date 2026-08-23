@@ -14,7 +14,10 @@ OUT.mkdir(parents=True, exist_ok=True)
 TARGETS = [
     ("k100_int8_gemv_v7_sglang", "k100_int8_gemv_v7.hip"),
     ("k100_int8_gemv_generic_v2_sglang", "k100_int8_gemv_generic_v2.hip"),
+    ("k100_int8_gemv_k5120_full5_sglang", "k100_int8_gemv_k5120_full5.hip"),
+    ("k100_int8_gemv_k5120_ldsx_v1_sglang", "k100_int8_gemv_k5120_ldsx_v1.hip"),
     ("k100_int8_gemv_deep_v4_sglang", "k100_int8_gemv_deep_v4.hip"),
+    ("k100_int8_gemv_tp2_row_ldsx_v1_sglang", "k100_int8_gemv_tp2_row_ldsx_v1.hip"),
     ("k100_int8_gemv_tp4_row_ldsx_v1_sglang", "k100_int8_gemv_tp4_row_ldsx_v1.hip"),
 ]
 
@@ -48,4 +51,4 @@ actual = {p.name for p in OUT.glob("*_sglang.so")}
 if actual != expected:
     raise SystemExit(f"native output mismatch: expected={sorted(expected)}, actual={sorted(actual)}")
 
-print("[native] all four gfx928 user-space extensions built successfully", flush=True)
+print("[native] all seven gfx928 user-space extensions built successfully", flush=True)

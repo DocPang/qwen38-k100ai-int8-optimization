@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "classification": "long-context thinking exact-needle quality gate; timing non-authoritative",
   "status": "complete",
-  "label": "tp4-longctx-v8-qtail8-fixed-128k-midneedle",
+  "label": "tp4-128k-midneedle",
   "port": 8068,
   "corpus": "results/u036_samegpu_chatneedle128k_mid_corpus_v2.json",
   "targetUserContentTokens": 131072,

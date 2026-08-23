@@ -1,0 +1,4 @@
+6f0f31499549f462b8644e7a85ba3a7454d263b71a89b5649eb7e39315db5130  qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-00
+3b83990b4f2edb2a91c2398dea974094d66b92df0dcce928bc41590712293b5c  qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-01
+94047ac8e409812ce5f2af6debb53f27c9a8e3890e43278984c9523e9ec962c7  qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-02
+5bb6b79cff0ab507889a1b20ad2ca9ca09b4149edfd83ec65c875c5da93e675d  qwen38-k100ai-int8-unified-20260823.docker.tar.zst.part-03

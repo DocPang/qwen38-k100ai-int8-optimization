@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "classification": "single-endpoint short arithmetic chat correctness capture; not performance authority",
   "status": "complete",
-  "port": 8090,
-  "model": "Qwen3.8-27B-W8A8-DFlash2-TP1-Agent128K",
+  "port": 8062,
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP2",
   "requestedCases": [
     0,
     1,

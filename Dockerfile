@@ -17,7 +17,10 @@ COPY .build/native/ /data/qwen38-27b-k100ai-int8-opt/native_ext/
 
 RUN test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_v7_sglang.so \
  && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_generic_v2_sglang.so \
+ && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_k5120_full5_sglang.so \
+ && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_k5120_ldsx_v1_sglang.so \
  && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_deep_v4_sglang.so \
+ && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_tp2_row_ldsx_v1_sglang.so \
  && test -s /data/qwen38-27b-k100ai-int8-opt/native_ext/k100_int8_gemv_tp4_row_ldsx_v1_sglang.so
 
 ENTRYPOINT ["/opt/qwen38-k100ai/start.sh"]

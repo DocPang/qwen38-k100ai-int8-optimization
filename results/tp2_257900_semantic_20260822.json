@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "classification": "long-context /v1/chat/completions semantic gate using canonical filler; exercises long prefill consumer; not performance authority",
+  "status": "complete",
+  "port": 8062,
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP2",
+  "canonicalCorpus": "/data/qwen38-27b-k100ai-int8-opt/results/sglang_tp_scaling_canonical_prompts_v2_20260820.json",
+  "canonicalCorpusLength": 257900,
+  "canonicalPromptSha256": "5056abc0dde05ba35ae8194172b173bcb48228585ef0d82f08a6a7f9edacd761",
+  "userContentSha256": "f134c5dc837eea1b920fb372a55fe65292bedcfb0451781bb6e77219d23a67d3",
+  "expected": "Q38LONGSEMANTICOK",
+  "text": "Q38LONGSEMANTICOK",
+  "textSha256": "9095d7691603860d73b0af542c175711b488d74ff14b239b271aaa7fc3c72814",
+  "usage": {
+    "prompt_tokens": 257959,
+    "total_tokens": 257968,
+    "completion_tokens": 9,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "promptTokensObserved": 257959,
+  "semanticPass": true,
+  "metricsSupported": true,
+  "maxRunning": 0.0,
+  "maxWaiting": 0.0,
+  "maxInflight": 0.0,
+  "contaminated": false,
+  "integrityPass": true,
+  "pass": true,
+  "wallS_non_authority": 389.8715112110367,
+  "rule": "For thresholded pack validation, observed prompt_tokens must exceed the configured min_q/min_kv threshold and the exact marker must match."
+}

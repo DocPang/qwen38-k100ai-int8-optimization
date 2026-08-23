@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract": "tp4_longctx_v8_qtail8_fixed_formal1_257900_o256",
+  "contract": "tp4_formal1_257900_o256",
   "endpoint": "/v1/completions",
   "mode": "DFLASH2",
   "decode_tps_definition": "(completion_tokens-1)/从首个流式 token 到请求结束的 wall time",
