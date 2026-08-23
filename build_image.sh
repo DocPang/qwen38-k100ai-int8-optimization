@@ -8,6 +8,7 @@ if [[ -z "${BASE_IMAGE:-}" && -f "$ROOT/.env" ]]; then
   [[ -n "$env_base" ]] && BASE_IMAGE="$env_base"
 fi
 BASE_IMAGE=${BASE_IMAGE:-$DEFAULT_BASE}
+export BASE_IMAGE
 IMAGE_TAG=${IMAGE_TAG:-qwen38-k100ai-int8-series:local}
 
 cd "$ROOT"

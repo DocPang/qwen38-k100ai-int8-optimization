@@ -83,21 +83,20 @@ Authority：[`results/tp1_acceptance_20260823.json`](results/tp1_acceptance_2026
 
 ## 5. 部署
 
-统一镜像/统一构建版本使用：
+从零部署请统一按 **[README 的完整 A / B / C 教程](README.md#从零部署先选一种方式三选一)** 操作，不要把本页当成第二套部署流程。
 
-```bash
-PROFILE=tp1
-HIP_VISIBLE_DEVICES=0
-PORT=8090
-```
+TP1 只需要记住本 Profile 的差异：
 
-或 `.env` 中设置 `PROFILE=tp1` 后：
+| 项目 | TP1 |
+|---|---|
+| `PROFILE` | `tp1` |
+| GPU 数 | 1 |
+| render node | 只映射 `RENDER0` 对应的 1 个设备 |
+| 默认端口 | `8090` |
+| served model | `Qwen3.8-27B-W8A8-DFlash2-TP1` |
 
-```bash
-bash run.sh
-```
-
-只映射 **1 个**对应的 render node，详见 [README](README.md)。
+- **方式 A**：完整镜像 `docker run` 时设置 `PROFILE=tp1`，Docker 会自动进入镜像内 `/opt/qwen38-k100ai/entrypoint.tp1.sh`。
+- **方式 B / C**：仓库根目录 `.env` 设置 `PROFILE=tp1` 和正确的 `RENDER0`，然后执行 `bash run.sh`。
 
 ## 6. 证据
 

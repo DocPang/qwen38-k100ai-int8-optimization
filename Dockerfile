@@ -7,7 +7,7 @@ RUN mkdir -p /opt/qwen38-k100ai \
  && /opt/qwen38-k100ai/install_into_image.sh \
  && rm -f /tmp/qwen38-k100ai-patchset.tar.gz
 
-# Default: use the four prebuilt userspace HIP extensions validated against
+# Default: use the seven prebuilt userspace HIP extensions validated against
 # the pinned SourceFind image / DTK stack.
 COPY native_ext/prebuilt/ /data/qwen38-27b-k100ai-int8-opt/native_ext/
 

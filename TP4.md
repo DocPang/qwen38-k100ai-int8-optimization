@@ -10,7 +10,7 @@
 >
 > **请先备份宿主机现有配置。不要为了照抄本项目而直接覆盖驱动、修改 GRUB/IOMMU/ACS、执行未知 `setpci` 命令或在生产服务器上盲目试验。** 本仓库只在 Docker/用户态叠加优化，不会自动修改宿主机驱动。
 >
-> **特别说明：本项目不包含、不编译、也不安装 `amdgpu.ko`、DKMS 或任何宿主机 GPU 内核驱动。** v1.1.0 系列仓库提供 7 个已验证的 K100AI/gfx928 **用户态 PyTorch/HIP `.so`**，覆盖 TP1/TP2/TP4 的公共与 profile-specific native 依赖；对应 `.hip` 源码全部公开。只有用户主动选择源码重编时才会启动临时编译容器，而且该容器不映射 `/dev/kfd` 或 `renderD*`、不使用 privileged、无网络、只读挂载 `/opt/hyhal`。如果现有 `hy-smi`、`/opt/hyhal` 或官方容器环境本身不正常，请停止部署，不要让本项目替你“修驱动”。
+> **特别说明：本项目不包含、不编译、也不安装 `amdgpu.ko`、DKMS 或任何宿主机 GPU 内核驱动。** v1.1.1 部署仓库提供 7 个已验证的 K100AI/gfx928 **用户态 PyTorch/HIP `.so`**（推理 runtime 与 v1.1.0 已验收版本相同），覆盖 TP1/TP2/TP4 的公共与 profile-specific native 依赖；对应 `.hip` 源码全部公开。只有用户主动选择源码重编时才会启动临时编译容器，而且该容器不映射 `/dev/kfd` 或 `renderD*`、不使用 privileged、无网络、只读挂载 `/opt/hyhal`。如果现有 `hy-smi`、`/opt/hyhal` 或官方容器环境本身不正常，请停止部署，不要让本项目替你“修驱动”。
 
 > 状态：**当前长上下文方案 Champion**。正式 cold output256 十档、128K needle、257900-token exact retrieval、三轮 257.9K 确定性和 restart/OOM 门禁均已通过。
 
@@ -36,51 +36,28 @@
 
 ---
 
-# 最简单的部署方式
+# 部署
 
-> **算力服务器不能联网？** 请直接看：[TP4 离线算力服务器部署教程](TP4_OFFLINE_DEPLOY.md)
+从零部署请统一按 **[README 的完整 A / B / C 教程](README.md#从零部署先选一种方式三选一)** 操作；不要把本技术页当成第二套部署流程。
 
-先准备模型权重。**下载源二选一，不要重复下载：**
+> **算力服务器不能联网？** 请看：[TP4 离线算力服务器部署教程](TP4_OFFLINE_DEPLOY.md)
 
-1. **夸克整合包**：https://pan.quark.cn/s/eb79a87216ba?pwd=Rcxc，提取码 `Rcxc`。该包已同时包含 W8A8 Target + DFlash2 Draft。
-2. **HuggingFace**：国内网络可使用群友实测可用的 HF Mirror：
+TP4 的 Profile 特有设置只有这些：
 
-```bash
-python3 -m pip install -U huggingface_hub
-export HF_ENDPOINT=https://hf-mirror.com
-export HF_HUB_DISABLE_XET=1
+| 项目 | TP4 |
+|---|---|
+| `PROFILE` | `tp4` |
+| GPU 数 | 4 |
+| render node | 映射 `RENDER0-3` 对应的 4 个设备 |
+| 默认端口 | `8068` |
+| served model | `Qwen3.8-27B-W8A8-DFlash2-TP4` |
+| 构建后本地镜像（B/C） | `qwen38-k100ai-int8-series:local` |
+| 完整成品镜像（A） | `qwen38-k100ai-int8:unified-20260823` |
 
-hf download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
-  --revision 417ede1 \
-  --local-dir /data/models/Qwen3.8-27B-SmoothQuant-W8A8-INT8
+- **方式 A**：`docker run` 设置 `PROFILE=tp4` 后，Docker 自动执行 `/opt/qwen38-k100ai/start.sh` → `/opt/qwen38-k100ai/entrypoint.tp4.sh`。
+- **方式 B / C**：仓库根目录 `.env` 设置 `PROFILE=tp4`、正确的 `RENDER0-3` 和模型绝对路径，然后执行 `bash run.sh`。
 
-hf download z-lab/Qwen3.8-27B-DFlash2 \
-  --revision 50307d4 \
-  --local-dir /data/models/Qwen3.8-27B-DFlash2
-```
-
-如果可以直接访问 HuggingFace，只需去掉两行 `export`。**夸克和 HuggingFace 任选其一；不要两边都下载。**
-
-然后：
-
-```bash
-cp .env.example .env
-# 编辑 .env：只改模型路径和本机 4 个 renderD 设备号
-
-# 1. 默认直接使用仓库内已经验证的预编译 native 扩展构建镜像
-bash build_image.sh
-
-# 2. 启动唯一的长期模型容器
-bash run.sh
-```
-
-默认情况下 `build_image.sh` **不会启动编译容器**，只会校验 `native_ext/PREBUILT_SHA256SUMS` 并执行 Docker build。`run.sh` 会先检查模型路径、`/dev/kfd`、4 个 `renderD*`、`/opt/hyhal` 和本地镜像；任何一项不对就停止，也不会自动删除或覆盖已有同名容器。真正长期运行的只有这一个模型服务容器。若你主动执行 `REBUILD_NATIVE=1 bash build_image.sh`，才会临时启动一次无 GPU、无网络、非 privileged 的编译容器；编译完成后自动删除。
-
-默认构建流程为：`复用/拉取固定 SourceFind 基础镜像 → 校验仓库内 4 个预编译 gfx928 用户态 HIP 扩展 → 应用 K100AI/SGLang/DFlash2 patch → 生成本地薄优化镜像`。随后 `run.sh` 才会映射 GPU 并启动唯一的 TP4 服务容器。
-
-默认端口为 `8068`，默认使用完整十档验证过的稳定 profile。基础镜像约 31.7GB，本仓库自身仍然很小；后续更新补丁时 Docker 会复用已有基础层，不需要重新下载 31.7GB。
-
-> **重要：** `.env.example` 中的 `renderD132-135` 只是验证机示例。请先用 `ls -l /dev/dri/`、`hy-smi`、PCIe 拓扑确认你自己的 4 张 K100AI 对应设备号。
+`renderD*` 不能照抄验证机编号，必须先用 `ls -l /dev/dri/`、`hy-smi` 和服务器拓扑确认。
 
 ---
 
@@ -429,7 +406,7 @@ sglang_dflash2_k100ai.patch
 | `native_ext/build_native.py` | 用 SourceFind 镜像内 PyTorch/hipcc 编译上述 4 个扩展 |
 | `build_native.sh` | 最小权限编译 wrapper：无网络、无 GPU 设备、只读 `/opt/hyhal` |
 
-v1.1.0 系列仓库默认提交 7 个已验证的预编译 `.so`，位于 `native_ext/prebuilt/`，其 SHA256 记录在 `native_ext/PREBUILT_SHA256SUMS`。Dockerfile 默认使用这些文件。`build_native.sh` 作为备用，会把重新编译的产物写到 `.build/native/`；Dockerfile 会在构建时用这些本机构建结果覆盖预编译版本。
+v1.1.1 部署仓库默认提交 7 个已验证的预编译 `.so`，位于 `native_ext/prebuilt/`，其 SHA256 记录在 `native_ext/PREBUILT_SHA256SUMS`。Dockerfile 默认使用这些文件。`build_native.sh` 作为备用，会把重新编译的产物写到 `.build/native/`；Dockerfile 会在构建时用这些本机构建结果覆盖预编译版本。
 
 再次强调：这些 `.so` 是 PyTorch 可加载的**用户态扩展**，不是 `amdgpu.ko`，不会通过 DKMS 安装，不会替换宿主机驱动。
 
@@ -599,7 +576,7 @@ sglang serve \
   --enable-metrics
 ```
 
-> 正式 v1.1.0 镜像 entrypoint 仍会在 `sglang.launch_server` 前增加 `launch_sglang_require_sitecustomize.py` 的 fail-closed 检查，防止 runtime patch 加载失败后静默退回 stock SGLang；该包装器不修改 server 参数或推理逻辑。手工排障时可直接使用上面的原生 `sglang serve`。
+> 正式 `unified-20260823` 镜像 entrypoint 仍会在 `sglang.launch_server` 前增加 `launch_sglang_require_sitecustomize.py` 的 fail-closed 检查，防止 runtime patch 加载失败后静默退回 stock SGLang；该包装器不修改 server 参数或推理逻辑。手工排障时可直接使用上面的原生 `sglang serve`。
 
 注意：真正使用 Docker 时还需要按自己的机器传入 `/dev/kfd` 和正确的 `/dev/dri/renderD*`。测试机 GPU4-7 对应的设备号不能假设在所有服务器上都一样，所以本文不建议直接复制固定 renderD 编号。
 

@@ -58,48 +58,62 @@
 
 ---
 
-## 部署方式选择（三选一）
+## 从零部署：先选一种方式（三选一）
 
-当前统一正式版：**v1.1.0（2026-08-23）**，同时支持 `PROFILE=tp1|tp2|tp4`。
+当前部署/复现正式版：**v1.1.1（2026-08-23）**。它沿用 v1.1.0 已验收的推理 runtime、模型与 `unified-20260823` 完整镜像，只修复部署教程和构建辅助脚本；性能数据不变。一个运行时同时支持 `PROFILE=tp1|tp2|tp4`。
 
-> **重要：以下三种方式是替代关系，不是连续步骤。根据你的场景选择其中一种完成即可，不要三种都操作。**
+> **A / B / C 是三种互斥的部署方式，不是连续步骤。只选一种。** 另外，模型权重只准备一套；夸克整合包和 HuggingFace 也是二选一，不要重复下载。
 
-| 方式 | 说明 | 需要传输的大小 | 是否需要 build | 推荐 |
-|---|---|---:|---:|---|
-| **A. 完整成品镜像** | 直接导入已验收的统一 Docker 镜像，load 即用 | 5.65 GiB（压缩） | 否 | ⭐⭐⭐⭐⭐ |
-| **B. 官方镜像 + 补丁构建** | 拉取 SourceFind 官方基础镜像，打上小补丁（patchset + 预编译 .so），docker build | 官方镜像 + ~2.3 MB 补丁 | 是（docker build） | ⭐⭐⭐⭐ |
-| **C. 全源码构建** | 同 B，但 native extensions 从源码重新编译 | 官方镜像 + 源码 | 是（docker build + 编译） | ⭐⭐ |
+| 方式 | 适合谁 | 需要下载 | 是否 build |
+|---|---|---|---|
+| **A. 完整成品镜像** | 第一次部署、最省事 | `unified-20260823` 完整镜像 + 一套模型权重 | 否 |
+| **B. 官方镜像 + 补丁构建** | 已有 SourceFind 基础镜像、想减少传输 | SourceFind 基础镜像 + `v1.1.1` 仓库 + 一套模型权重 | 是，使用预编译 `.so` |
+| **C. 全源码构建** | 需要审计/修改 HIP kernel | SourceFind 基础镜像 + `v1.1.1` 仓库 + 一套模型权重 | 是，并重编 7 个 `.so` |
 
-### 选定部署方式后，只下载对应内容
+### 0. 所有方式先做宿主机检查
 
-| 你选择的部署方式 | 需要下载 | 不需要下载 |
+下面命令都应在 **K100AI 算力服务器宿主机**执行：
+
+```bash
+hy-smi
+
+test -e /dev/kfd && echo '/dev/kfd: OK' || echo '/dev/kfd: MISSING'
+test -d /opt/hyhal && echo '/opt/hyhal: OK' || echo '/opt/hyhal: MISSING'
+
+ls -l /dev/dri/renderD*
+docker version
+```
+
+至少确认：
+
+- `hy-smi` 能正常看到准备使用的 K100AI；
+- `/dev/kfd` 存在；
+- `/opt/hyhal` 存在；
+- 你已经确认目标 GPU 对应的 `renderD*`；
+- Docker 正常工作。
+
+如果使用 `.tar.zst` 完整镜像或夸克权重包，还需要：
+
+```bash
+command -v zstd
+```
+
+如果上述基础环境本身不正常，请先停止。**本项目不会替你安装/覆盖宿主机 GPU 驱动，也不会自动修改 GRUB、IOMMU、ACS 或执行 `setpci`。**
+
+---
+
+## 1. 所有方式共用：准备模型权重（二选一下载源）
+
+最终运行始终需要两份模型：
+
+| 角色 | HuggingFace repo | 固定 revision |
 |---|---|---|
-| **A. 完整成品镜像** | `unified-20260823` 完整镜像 + **一套模型权重** | SourceFind 官方基础镜像、B/C 构建流程 |
-| **B. 官方镜像 + 补丁构建** | SourceFind 官方基础镜像 + `v1.1.0` 仓库 + **一套模型权重** | A 的完整成品镜像、源码重编 |
-| **C. 全源码构建** | SourceFind 官方基础镜像 + `v1.1.0` 仓库 + **一套模型权重** | A 的完整成品镜像；native `.so` 会从源码重编 |
+| W8A8 Target | `Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8` | `417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e` |
+| DFlash2 Draft | `z-lab/Qwen3.8-27B-DFlash2` | `50307d4c4cde6860d4eee73e2547cd786fe8e8a4` |
 
-> **“一套模型权重”始终只有一套。** 下方夸克整合包与 HuggingFace 是两个下载来源，**二选一**，不要两边都下载。
+**不需要 Qwen3.8 BF16/FP16 Base 权重。**
 
-- 普通部署选 **A**（最快）或 **B**（已有官方镜像时最省流量）。
-- 需要修改 patch、kernel 或审计构建过程才选 **C**。
-- 三种方式都支持离线：A 的镜像包和 B/C 的官方镜像都可以先在有网机器下载再拷贝到目标服务器。
-
-### 所有方式共用：模型权重下载（二选一）
-
-> **无论选择 A / B / C，都只需要准备一套模型权重。下面两个下载来源二选一即可，不要两个都下载。**
->
-> 最终都应得到同样的两个模型目录：**W8A8 Target + DFlash2 Draft**。不需要 Qwen3.8 BF16/FP16 Base 权重。
-
-固定版本：
-
-| 模型 | 固定 revision |
-|---|---|
-| `Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8` | `417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e` |
-| `z-lab/Qwen3.8-27B-DFlash2` | `50307d4c4cde6860d4eee73e2547cd786fe8e8a4` |
-
-#### 下载地址 1：夸克网盘整合权重包
-
-已经把当前实际使用的 Target + Draft 整理成一个包：
+### 下载源 1：夸克整合权重包
 
 - 文件夹：`Qwen3.8-K100AI-Weights-20260823`
 - 下载：**[夸克网盘](https://pan.quark.cn/s/eb79a87216ba?pwd=Rcxc)**
@@ -107,15 +121,29 @@
 - 压缩包：`qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst`
 - SHA256：`aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5`
 
+下载到算力服务器后：
+
 ```bash
-tar --use-compress-program=unzstd -xf qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst
+ARCHIVE=qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst
+
+echo "aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5  $ARCHIVE" | sha256sum -c -
+zstd -t "$ARCHIVE"
+
+mkdir -p "$HOME/models/q38-release"
+zstd -dc "$ARCHIVE" | tar -xf - -C "$HOME/models/q38-release"
+
+export WEIGHTS_ROOT="$HOME/models/q38-release/Qwen3.8-27B-K100AI-W8A8-DFlash2-Weights-20260823"
+export TARGET_MODEL="$WEIGHTS_ROOT/target/Qwen3.8-27B-SmoothQuant-W8A8-INT8"
+export DRAFT_MODEL="$WEIGHTS_ROOT/draft/Qwen3.8-27B-DFlash2"
 ```
 
-该整合包已经同时包含 W8A8 Target 和 DFlash2 Draft，**下载这个包后不要再执行下面的 HuggingFace 下载命令**。
+**注意真实目录层级就是上面这两条路径。** 整合包不是解压后直接得到 `/target` 和 `/draft`。
 
-#### 下载地址 2：HuggingFace
+下载这个整合包后，**不要再执行下面的 HuggingFace 下载。**
 
-国内网络可使用群友实测可用的 HF Mirror；如果机器可以直接访问 HuggingFace，去掉下面两行 `export` 即可，仍然属于同一个 HuggingFace 下载方案。
+### 下载源 2：HuggingFace
+
+国内网络可使用群友实测可用的 HF Mirror：
 
 ```bash
 python3 -m pip install -U huggingface_hub
@@ -123,143 +151,387 @@ python3 -m pip install -U huggingface_hub
 export HF_ENDPOINT=https://hf-mirror.com
 export HF_HUB_DISABLE_XET=1
 
+MODEL_ROOT="$HOME/models"
+mkdir -p "$MODEL_ROOT"
+
 hf download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
-  --revision 417ede1 \
-  --local-dir /home/models/Qwen3.8-27B-SmoothQuant-W8A8-INT8
+  --revision 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e \
+  --local-dir "$MODEL_ROOT/Qwen3.8-27B-SmoothQuant-W8A8-INT8"
 
 hf download z-lab/Qwen3.8-27B-DFlash2 \
-  --revision 50307d4 \
-  --local-dir /home/models/Qwen3.8-27B-DFlash2
+  --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
+  --local-dir "$MODEL_ROOT/Qwen3.8-27B-DFlash2"
+
+export TARGET_MODEL="$MODEL_ROOT/Qwen3.8-27B-SmoothQuant-W8A8-INT8"
+export DRAFT_MODEL="$MODEL_ROOT/Qwen3.8-27B-DFlash2"
 ```
 
-> 这里两条 `hf download` 是 **同一个 HuggingFace 方案内必须准备的两份模型**，不是两个可选方案。执行 HuggingFace 方案后，不需要再下载夸克整合包。
+如果机器能直接访问 HuggingFace，去掉两行 `export HF_*` 即可。这里两条 `hf download` 是**同一个 HuggingFace 方案内必须准备的 Target + Draft**，不是两个下载方案。
+
+### 模型文件自检
+
+无论选择哪个下载源，都先执行：
+
+```bash
+printf 'TARGET_MODEL=%s\nDRAFT_MODEL=%s\n' "$TARGET_MODEL" "$DRAFT_MODEL"
+
+test -s "$TARGET_MODEL/config.json"
+test -s "$TARGET_MODEL/tokenizer.json"
+test -s "$TARGET_MODEL/model.safetensors.index.json"
+test -s "$TARGET_MODEL/model-mtp.safetensors"
+test -s "$DRAFT_MODEL/config.json"
+test -s "$DRAFT_MODEL/model.safetensors"
+
+echo 'model files: OK'
+```
+
+如果你重新登录了 shell，记得重新设置 `TARGET_MODEL` 和 `DRAFT_MODEL`，或者在后面的 `.env` 中写绝对路径。
 
 ---
 
-### 方式 A：完整成品镜像（推荐）
+## 2A. 方式 A：完整成品镜像（推荐）
 
-**说明**：使用已经验收的 **TP1 / TP2 / TP4 统一 Docker 运行时镜像**，导入后直接运行，不需要任何 build 步骤。
+**A 不需要 clone GitHub 仓库，也不需要执行任何 build。** 启动脚本已经在镜像里面。
 
-#### 1. 获取镜像压缩包
+### A1. 下载并校验完整镜像
 
 - 文件：`qwen38-k100ai-int8-unified-20260823.docker.tar.zst`
-- 大小：**5.65 GiB（6,065,184,632 bytes）**（压缩后）/ **约 31.70 GB（Docker image `.Size`）**（Docker 镜像）
+- 压缩大小：**5.65 GiB（6,065,184,632 bytes）**
+- Docker image `.Size`：**31,699,585,312 bytes（约 31.70 GB）**
 - Docker tag：`qwen38-k100ai-int8:unified-20260823`
 - SHA256：`6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14`
 - 下载：**[夸克网盘：full_images](https://pan.quark.cn/s/e7626123faa0?pwd=M8Fr)** · 提取码：`M8Fr`
 
-> 离线环境：先在有网机器下载完整镜像，再通过 rsync / U盘 / scp 拷贝到目标服务器。
-
-#### 2. 校验完整性
-
 ```bash
-# SHA256 校验
-echo "6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14  qwen38-k100ai-int8-unified-20260823.docker.tar.zst" | sha256sum -c -
+IMAGE_ARCHIVE=qwen38-k100ai-int8-unified-20260823.docker.tar.zst
 
-# zstd 完整性
-zstd -t qwen38-k100ai-int8-unified-20260823.docker.tar.zst
+echo "6d14588722b0fea0ab66a53e2810385d1f9999a9cd78c8e1d2e6640c744f2b14  $IMAGE_ARCHIVE" | sha256sum -c -
+zstd -t "$IMAGE_ARCHIVE"
+zstd -dc "$IMAGE_ARCHIVE" | docker load
+
+docker image inspect qwen38-k100ai-int8:unified-20260823 >/dev/null
+echo 'image: OK'
 ```
 
-#### 3. 导入 Docker
+### A2. 启动脚本在哪里
 
-```bash
-zstd -dc qwen38-k100ai-int8-unified-20260823.docker.tar.zst | docker load
+完整镜像已经固定：
+
+```text
+Docker ENTRYPOINT
+└─ /opt/qwen38-k100ai/start.sh
+   ├─ PROFILE=tp1 → /opt/qwen38-k100ai/entrypoint.tp1.sh
+   ├─ PROFILE=tp2 → /opt/qwen38-k100ai/entrypoint.tp2.sh
+   └─ PROFILE=tp4 → /opt/qwen38-k100ai/entrypoint.tp4.sh
 ```
 
-确认：
+你**不需要手工进入容器执行这些脚本**。下面的 `docker run ... qwen38-k100ai-int8:unified-20260823` 会自动触发 Docker ENTRYPOINT；你只需要设置 `PROFILE`、GPU 设备、模型挂载和端口。
+
+如需核对镜像内部脚本：
 
 ```bash
-docker images | grep qwen38-k100ai-int8
-# 应看到: qwen38-k100ai-int8  unified-20260823
+docker run --rm --entrypoint /bin/bash qwen38-k100ai-int8:unified-20260823 -lc \
+  'ls -l /opt/qwen38-k100ai/start.sh /opt/qwen38-k100ai/entrypoint.tp1.sh /opt/qwen38-k100ai/entrypoint.tp2.sh /opt/qwen38-k100ai/entrypoint.tp4.sh'
 ```
 
-#### 4. 挂载模型权重
+### A3. 选择 Profile 并启动
 
-镜像**不包含模型权重**。请先按上方“模型权重下载（二选一）”任选一个来源准备好同一套 Target + Draft，然后挂载：
+先把 `renderDXXX` 换成你在第 0 步确认的真实设备号。
 
-| 容器路径 | 内容 |
-|---|---|
-| `/models/target` | Qwen3.8-27B SmoothQuant W8A8/INT8 Target |
-| `/models/draft` | Qwen3.8-27B DFlash2 Draft |
-
-> **不要重复下载。** 如果已经下载夸克整合包，就不要再从 HuggingFace 下载；反之亦然。
-
-#### 5. 启动服务
-
-**TP4（4 卡，默认）**：
+**TP1：**
 
 ```bash
-docker run -d \
-  --name qwen38-tp4 \
-  --network host --ipc host \
-  --restart unless-stopped \
-  --security-opt label=disable \
-  --device /dev/kfd:/dev/kfd \
-  --device /dev/dri/renderD128:/dev/dri/renderD128 \
-  --device /dev/dri/renderD129:/dev/dri/renderD129 \
-  --device /dev/dri/renderD130:/dev/dri/renderD130 \
-  --device /dev/dri/renderD131:/dev/dri/renderD131 \
-  -v /opt/hyhal:/opt/hyhal:ro \
-  -v /path/to/target:/models/target:ro \
-  -v /path/to/draft:/models/draft:ro \
-  -e PROFILE=tp4 \
-  -e HIP_VISIBLE_DEVICES=0,1,2,3 \
-  -e PORT=8068 \
-  qwen38-k100ai-int8:unified-20260823
-```
+export R0=/dev/dri/renderDXXX
 
-**TP2（双卡）**：
-
-```bash
-docker run -d \
-  --name qwen38-tp2 \
-  --network host --ipc host \
-  --restart unless-stopped \
-  --security-opt label=disable \
-  --device /dev/kfd:/dev/kfd \
-  --device /dev/dri/renderD128:/dev/dri/renderD128 \
-  --device /dev/dri/renderD129:/dev/dri/renderD129 \
-  -v /opt/hyhal:/opt/hyhal:ro \
-  -v /path/to/target:/models/target:ro \
-  -v /path/to/draft:/models/draft:ro \
-  -e PROFILE=tp2 \
-  -e HIP_VISIBLE_DEVICES=0,1 \
-  -e PORT=8062 \
-  qwen38-k100ai-int8:unified-20260823
-```
-
-**TP1（单卡）**：
-
-```bash
 docker run -d \
   --name qwen38-tp1 \
   --network host --ipc host \
   --restart unless-stopped \
   --security-opt label=disable \
   --device /dev/kfd:/dev/kfd \
-  --device /dev/dri/renderD128:/dev/dri/renderD128 \
+  --device "$R0:$R0" \
   -v /opt/hyhal:/opt/hyhal:ro \
-  -v /path/to/target:/models/target:ro \
-  -v /path/to/draft:/models/draft:ro \
+  -v "$TARGET_MODEL:/models/target:ro" \
+  -v "$DRAFT_MODEL:/models/draft:ro" \
   -e PROFILE=tp1 \
   -e HIP_VISIBLE_DEVICES=0 \
   -e PORT=8090 \
   qwen38-k100ai-int8:unified-20260823
 ```
 
-> **renderD 编号**：`renderD128`–`renderD131` 是示例，必须根据你机器的实际拓扑替换。用 `ls /dev/dri/` 查看。
->
-> **模型路径**：`/path/to/target` 和 `/path/to/draft` 替换为你实际的模型目录。
+**TP2：**
 
-#### 6. 原生 SGLang 启动命令
+```bash
+export R0=/dev/dri/renderDXXX
+export R1=/dev/dri/renderDXXX
 
-普通用户**不需要手工执行下面的长命令**。推荐直接使用上面的统一镜像，通过 `PROFILE=tp1|tp2|tp4` 启动；镜像 entrypoint 会自动加载对应的 K100AI runtime patch、Triton tune cache、native `.so` 和环境变量。
+docker run -d \
+  --name qwen38-tp2 \
+  --network host --ipc host \
+  --restart unless-stopped \
+  --security-opt label=disable \
+  --device /dev/kfd:/dev/kfd \
+  --device "$R0:$R0" \
+  --device "$R1:$R1" \
+  -v /opt/hyhal:/opt/hyhal:ro \
+  -v "$TARGET_MODEL:/models/target:ro" \
+  -v "$DRAFT_MODEL:/models/draft:ro" \
+  -e PROFILE=tp2 \
+  -e HIP_VISIBLE_DEVICES=0,1 \
+  -e PORT=8062 \
+  -e CUSTOM_AR=1 \
+  -e P2P=1 \
+  qwen38-k100ai-int8:unified-20260823
+```
 
-下面使用固定 SourceFind SGLang 0.5.12 镜像自带的**原生 `sglang serve` CLI**，参数与本项目正式 Profile 一致，便于排障、二次开发和核对配置。只复制 argv 到裸上游 SGLang 环境里，**不能**保证得到本项目的兼容性和性能；仍需先加载对应的 `PYTHONPATH`、K100AI runtime patch、Triton tune cache、native `.so` 和环境变量，完整固定值以 [`full_images/entrypoint_tp1.sh`](full_images/entrypoint_tp1.sh)、[`entrypoint_tp2.sh`](full_images/entrypoint_tp2.sh) 和 [`entrypoint_tp4.sh`](full_images/entrypoint_tp4.sh) 为准。
+**TP4：**
 
-> v1.1.0 统一镜像内部实际使用 `launch_sglang_require_sitecustomize.py` 作为 **fail-closed 启动门禁**：它只负责强制确认 `sitecustomize` 补丁加载成功，然后调用标准 `sglang.launch_server`。它不是自研 server，也不改变 SGLang 参数语义。下面为了更直观，展示等价的原生 `sglang serve` 写法。
+```bash
+export R0=/dev/dri/renderDXXX
+export R1=/dev/dri/renderDXXX
+export R2=/dev/dri/renderDXXX
+export R3=/dev/dri/renderDXXX
 
-**TP1：**
+docker run -d \
+  --name qwen38-tp4 \
+  --network host --ipc host \
+  --restart unless-stopped \
+  --security-opt label=disable \
+  --device /dev/kfd:/dev/kfd \
+  --device "$R0:$R0" \
+  --device "$R1:$R1" \
+  --device "$R2:$R2" \
+  --device "$R3:$R3" \
+  -v /opt/hyhal:/opt/hyhal:ro \
+  -v "$TARGET_MODEL:/models/target:ro" \
+  -v "$DRAFT_MODEL:/models/draft:ro" \
+  -e PROFILE=tp4 \
+  -e HIP_VISIBLE_DEVICES=0,1,2,3 \
+  -e PORT=8068 \
+  -e CUSTOM_AR=1 \
+  qwen38-k100ai-int8:unified-20260823
+```
+
+### A4. 验证
+
+| Profile | 容器名 | 端口 | served model name |
+|---|---|---:|---|
+| TP1 | `qwen38-tp1` | 8090 | `Qwen3.8-27B-W8A8-DFlash2-TP1` |
+| TP2 | `qwen38-tp2` | 8062 | `Qwen3.8-27B-W8A8-DFlash2-TP2` |
+| TP4 | `qwen38-tp4` | 8068 | `Qwen3.8-27B-W8A8-DFlash2-TP4` |
+
+以 TP4 为例：
+
+```bash
+CONTAINER=qwen38-tp4
+PORT=8068
+SERVED_MODEL=Qwen3.8-27B-W8A8-DFlash2-TP4
+
+docker logs --tail=100 "$CONTAINER"
+curl -fsS "http://127.0.0.1:$PORT/health"
+curl -fsS "http://127.0.0.1:$PORT/v1/models"
+
+curl -fsS "http://127.0.0.1:$PORT/v1/chat/completions" \
+  -H 'Content-Type: application/json' \
+  -d "{\"model\":\"$SERVED_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"你好\"}],\"max_tokens\":32,\"temperature\":0}"
+```
+
+TP1 / TP2 只需按上表替换 `CONTAINER`、`PORT`、`SERVED_MODEL`。
+
+---
+
+## 2B. 方式 B：SourceFind 官方镜像 + 补丁构建
+
+B 会使用仓库里已经验证的 7 个预编译 gfx928 用户态 HIP `.so`，**不会重编宿主机驱动**。
+
+### B1. 拉取固定 SourceFind 基础镜像
+
+```bash
+BASE_IMAGE='harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde'
+
+docker pull "$BASE_IMAGE"
+docker image inspect "$BASE_IMAGE" >/dev/null
+```
+
+该 digest 对应项目验收使用的 SourceFind SGLang 0.5.12 / DTK 26.04 基础镜像。Harbor 访问权限由厂商侧决定；无法 pull 时，请从海光/SourceFind 正常渠道取得同一镜像。
+
+### B2. 获取固定 `v1.1.1` 仓库
+
+```bash
+git clone --branch v1.1.1 --depth 1 https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
+cd qwen38-k100ai-int8-optimization
+
+git describe --tags --exact-match
+# 应输出: v1.1.1
+```
+
+`v1.1.1` 的推理 runtime、patchset 和 7 个预编译 `.so` 与 v1.1.0 已验收版本相同；本次 patch 只修复部署可复现性和构建辅助脚本。
+
+### B3. 配置 `.env`
+
+仓库根目录已经提供：
+
+```text
+.env.example
+build_image.sh
+build_native.sh
+run.sh
+Dockerfile
+```
+
+执行：
+
+```bash
+cp .env.example .env
+```
+
+然后编辑 `.env`。以 TP4 为例：
+
+```dotenv
+PROFILE=tp4
+
+TARGET_MODEL=/绝对路径/Qwen3.8-27B-SmoothQuant-W8A8-INT8
+DRAFT_MODEL=/绝对路径/Qwen3.8-27B-DFlash2
+
+RENDER0=/dev/dri/renderDXXX
+RENDER1=/dev/dri/renderDXXX
+RENDER2=/dev/dri/renderDXXX
+RENDER3=/dev/dri/renderDXXX
+
+PORT=
+IMAGE_TAG=qwen38-k100ai-int8-series:local
+CUSTOM_AR=1
+P2P=1
+```
+
+这里的 `TARGET_MODEL` / `DRAFT_MODEL` 填第 1 节已经验证过的**宿主机绝对路径**。TP1 只使用 `RENDER0`；TP2 只使用 `RENDER0-1`；TP4 使用 `RENDER0-3`。
+
+在线构建时不用写 `BASE_IMAGE`，`build_image.sh` 默认就是上面的固定 digest。离线构建见 [TP4_OFFLINE_DEPLOY.md](TP4_OFFLINE_DEPLOY.md)。
+
+### B4. 构建薄优化镜像
+
+```bash
+bash build_image.sh
+```
+
+该脚本会：
+
+1. 校验 `native_ext/PREBUILT_SHA256SUMS` 中的 7 个预编译 `.so`；
+2. 使用固定 SourceFind 基础镜像；
+3. 将 `qwen38-k100ai-patchset.tar.gz` 安装进镜像；
+4. 生成 `qwen38-k100ai-int8-series:local`。
+
+检查：
+
+```bash
+docker image inspect qwen38-k100ai-int8-series:local >/dev/null
+echo 'built image: OK'
+```
+
+### B5. 启动
+
+**B/C 的正确宿主机启动入口是仓库根目录的 `run.sh`，不是方式 A 那条写死 `unified-20260823` 的 `docker run`。**
+
+```bash
+bash run.sh
+```
+
+`run.sh` 会先检查模型目录、`/dev/kfd`、`/opt/hyhal`、所需 `renderD*`、镜像 tag 和同名容器，再生成并执行 `docker run`。任何必需项缺失都会直接退出。
+
+默认容器名和端口：
+
+| `PROFILE` | 容器名 | 端口 |
+|---|---|---:|
+| `tp1` | `qwen38-tp1` | 8090 |
+| `tp2` | `qwen38-tp2` | 8062 |
+| `tp4` | `qwen38-tp4` | 8068 |
+
+启动后按 A4 的方法验证。
+
+---
+
+## 2C. 方式 C：全源码构建
+
+C 与 B 使用同一份 `v1.1.1` 仓库、同一份模型和同一个 `run.sh`；**唯一核心差异是 7 个 native HIP 扩展会从源码重新编译。**
+
+先完成 B1、B2、B3，然后执行：
+
+```bash
+REBUILD_NATIVE=1 bash build_image.sh
+```
+
+源码构建链：
+
+```text
+build_image.sh
+└─ build_native.sh
+   └─ 无 GPU / 无网络 / 非 privileged 临时容器
+      └─ native_ext/build_native.py
+         └─ 生成 7 个 .so 到 .build/native/
+```
+
+`build_native.sh` 只读挂载宿主机 `/opt/hyhal`，不会映射 `/dev/kfd` 或 `renderD*`，也不会修改宿主机驱动。
+
+构建成功后仍然是：
+
+```bash
+bash run.sh
+```
+
+然后按 A4 验证。
+
+> 离线 C 路线建议显式执行：`BASE_IMAGE=qwen38-sourcefind-base:20260620 REBUILD_NATIVE=1 bash build_image.sh`。v1.1.1 的 `build_image.sh` 也会把从 `.env` 解析出的 `BASE_IMAGE` 继续传给 `build_native.sh`，显式写法则最容易审计。
+
+---
+
+## 3. 启动脚本到底在哪里
+
+这是 v1.1.1 部署包对应的完整调用链；镜像内推理 runtime 沿用 v1.1.0 已验收 payload：
+
+```text
+方式 A：
+宿主机 docker run
+└─ 镜像 ENTRYPOINT: /opt/qwen38-k100ai/start.sh
+   ├─ tp1 -> /opt/qwen38-k100ai/entrypoint.tp1.sh
+   ├─ tp2 -> /opt/qwen38-k100ai/entrypoint.tp2.sh
+   └─ tp4 -> /opt/qwen38-k100ai/entrypoint.tp4.sh
+
+方式 B / C：
+宿主机仓库根目录 ./run.sh
+└─ docker run qwen38-k100ai-int8-series:local
+   └─ 镜像 ENTRYPOINT: /opt/qwen38-k100ai/start.sh
+      └─ 对应 /opt/qwen38-k100ai/entrypoint.tp*.sh
+```
+
+仓库中可直接审计的对应源码：
+
+```text
+full_images/entrypoint.sh
+full_images/entrypoint_tp1.sh
+full_images/entrypoint_tp2.sh
+full_images/entrypoint_tp4.sh
+```
+
+构建 B/C 时，`qwen38-k100ai-patchset.tar.gz` 中的 `profile_runtime/start.sh` 和 `profile_runtime/entrypoint.tp*.sh` 会被安装到 `/opt/qwen38-k100ai/`。发布前已核对：patchset 内 TP1/TP2/TP4 entrypoint 与仓库 `full_images/entrypoint_tp*.sh` 一致。
+
+### 最终是不是原生 SGLang？
+
+是。最终 server 仍然是固定 SourceFind SGLang 0.5.12 的标准 `sglang.launch_server` / `run_server()`。
+
+正式镜像在它前面保留了一个很薄的 fail-closed 门禁：
+
+```text
+/data/qwen38-27b-k100ai-int8-opt/scripts/launch_sglang_require_sitecustomize.py
+```
+
+它只强制确认本项目的 `sitecustomize` runtime patch 已成功加载；失败就终止，避免 Python 默认的 fail-open 行为悄悄启动 stock SGLang。补丁加载成功后，它调用标准 `sglang.launch_server`，不自定义参数解析或 server 实现。
+
+<details>
+<summary><strong>高级排障：查看原生 <code>sglang serve</code> 参数主体</strong></summary>
+
+> 这部分**不是第一次部署的必做步骤**。单独复制 `sglang serve` 到裸上游环境不会自动加载本项目的 runtime patch、Triton cache 和 native `.so`；完整固定环境变量请看上面的 `full_images/entrypoint_tp*.sh`。
+
+TP1：
 
 ```bash
 sglang serve \
@@ -287,7 +559,7 @@ sglang serve \
   --enable-metrics
 ```
 
-**TP2：**
+TP2：
 
 ```bash
 sglang serve \
@@ -315,7 +587,7 @@ sglang serve \
   --enable-metrics
 ```
 
-**TP4：**
+TP4：
 
 ```bash
 sglang serve \
@@ -342,111 +614,9 @@ sglang serve \
   --enable-metrics --tool-call-parser qwen3_coder --reasoning-parser qwen3
 ```
 
-> TP2 / TP4 默认使用 P2P 和 custom all-reduce。TP2 entrypoint 明确支持 `P2P=0` 与 `CUSTOM_AR=0`；TP4 entrypoint 支持 `CUSTOM_AR=0`，P2P 保持正式版默认配置。TP4 的 U036、Q16、tail-split、DFlash2 selector 等长上下文优化环境变量没有在上面的 argv 重复展开，完整固定值请直接查看 `full_images/entrypoint_tp4.sh`。
+TP2 / TP4 默认使用 P2P 和 custom all-reduce；完整环境变量仍以正式 entrypoint 为准。
 
-#### 7. 验证
-
-```bash
-# 等待模型加载（不同 Profile / 机器环境会有差异）
-docker logs -f --tail=50 qwen38-tp4
-
-# 健康检查
-curl http://localhost:8068/health
-# 应返回 200
-
-# 测试请求
-curl http://localhost:8068/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"Qwen3.8-27B-W8A8-DFlash2-TP4","messages":[{"role":"user","content":"你好"}],"max_tokens":32,"temperature":0}'
-```
-
----
-
-### 方式 B：官方镜像 + 补丁构建
-
-**说明**：拉取 SourceFind 官方 K100AI 基础镜像，打上本项目的**小补丁**（runtime patchset + 预编译 native extensions），然后 `docker build`。适合已经有官方镜像、或不想传输 5.65 GiB 完整镜像的场景。
-
-**补丁内容**（合计约 2.3 MB）：
-
-| 文件 | 大小 | 内容 |
-|---|---:|---|
-| `qwen38-k100ai-patchset.tar.gz` | ~86 KB | runtime patches（sitecustomize、repair、SGLang overlay） |
-| `native_ext/prebuilt/*.so` | ~2.1 MB | 7 个预编译 gfx928 用户态 HIP 扩展 |
-
-#### 1. 获取官方基础镜像
-
-```text
-harbor.sourcefind.cn:5443/dcu/admin/base/custom@sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
-```
-
-- 该镜像包含 SourceFind SGLang 0.5.12 / DTK 26.04 运行环境；
-- 需要能访问 `harbor.sourcefind.cn:5443`（海光内网/授权环境）；
-- 离线环境：先在有网机器 `docker pull` 后 `docker save` 导出，拷贝到目标服务器 `docker load`，然后在 `.env` 中设置 `BASE_IMAGE` 指向本地 tag。
-
-#### 2. 获取本项目仓库
-
-```bash
-# 在线：固定到当前正式版 v1.1.0
-git clone --branch v1.1.0 --depth 1 https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
-cd qwen38-k100ai-int8-optimization
-
-# 离线：在有网机器 clone v1.1.0 后打包拷贝
-# tar czf qwen38-k100ai-int8-optimization.tar.gz qwen38-k100ai-int8-optimization/
-```
-
-#### 3. 配置环境
-
-```bash
-cp .env.example .env
-# 修改 .env 中的：
-#   BASE_IMAGE=<本地已导入的官方镜像 tag>（离线时必填）
-#   TARGET_MODEL=/path/to/target
-#   DRAFT_MODEL=/path/to/draft
-#   RENDER0=/dev/dri/renderD128
-#   RENDER1=/dev/dri/renderD129
-#   RENDER2=/dev/dri/renderD130
-#   RENDER3=/dev/dri/renderD131
-```
-
-#### 4. 构建镜像
-
-```bash
-bash build_image.sh
-```
-
-构建过程：
-1. 校验 7 个预编译 `.so` 的 SHA256；
-2. 以官方基础镜像为基底 `docker build`；
-3. 解压 patchset 到 `/opt/qwen38-k100ai/`，执行 `install_into_image.sh`；
-4. 拷贝预编译 native extensions 到 `/data/qwen38-27b-k100ai-int8-opt/native_ext/`。
-
-> 构建容器无 GPU 设备、无网络、非 privileged，不修改宿主机驱动。
-
-#### 5. 准备模型 + 启动
-
-模型权重按上方统一的“模型权重下载（二选一）”准备一次即可；挂载、启动与验证同方式 A 的第 4、5、7 步。第 6 节是高级用户查看的镜像内 SGLang 实际启动参数，不是额外必做步骤。
-
----
-
-### 方式 C：全源码构建
-
-**说明**：同方式 B，但 native extensions 从 C++ 源码重新编译（需要 DTK/hyhal 编译环境）。适合需要修改 kernel 源码、审计编译过程、或预编译 `.so` 与你的 DTK 版本不兼容的场景。
-
-#### 与方式 B 的唯一区别
-
-```bash
-# 方式 B：使用预编译 .so（默认）
-bash build_image.sh
-
-# 方式 C：从源码重编 7 个 native extensions
-REBUILD_NATIVE=1 bash build_image.sh
-```
-
-`REBUILD_NATIVE=1` 会启动一个临时编译容器（无 GPU、无网络、非 privileged），在官方基础镜像内用 DTK 编译 7 个 HIP `.so`，输出到 `.build/native/`，然后正常 `docker build`。
-
-> 编译容器不修改宿主机驱动。如果编译失败，回退到方式 B 的预编译 `.so`。
-
-其余步骤（获取官方镜像、配置 .env、准备模型、启动、验证）同方式 B。
+</details>
 
 ---
 
@@ -531,6 +701,7 @@ sha256:366525b25f452f85eb0ea5813604a64f03c648627bc824bb498b56cf5a325dde
 
 | 版本 | 日期 | 主要更新 |
 |---|---|---|
+| **v1.1.1** | 2026-08-23 | 部署/复现修复：重写 A/B/C 从零教程；明确权重真实目录和镜像内启动脚本；修复 B/C 镜像 tag 混用、离线文档旧路径/容器名，以及 C 路线 `BASE_IMAGE` 向源码编译子脚本传递；推理 runtime 与 `unified-20260823` 镜像不变。 |
 | **v1.1.0** | 2026-08-23 | TP1 / TP2 / TP4 三档统一正式发布；TP1 更新为当前最优长上下文方案；TP2 首次正式公开；统一 `PROFILE=tp1\|tp2\|tp4`；更新完整镜像与十档对比。 |
 | **v1.0.1** | 2026-08-22 | 发布 TP1 / TP4 **统一完整 Docker 镜像**；`PROFILE=tp1\|tp4` 切换；增加夸克网盘直下与 SHA256；TP1 真机 smoke 通过；统一镜像纳入 DFlash2 sampling 防崩保护。 |
 | **v1.0.0** | 2026-08-21 | TP4 正式 Champion：128K 49.45s / 88.68 tok/s，257.9K 132.25s / 72.49 tok/s；完成 cold 十档、质量与稳定性门禁。 |

@@ -84,19 +84,18 @@ Authority：[`results/tp2_acceptance_20260822.json`](results/tp2_acceptance_2026
 
 ## 6. 部署
 
-统一系列镜像/构建版本使用：
+从零部署请统一按 **[README 的完整 A / B / C 教程](README.md#从零部署先选一种方式三选一)** 操作，本页只补充 TP2 的 Profile 差异：
 
-```bash
-PROFILE=tp2
-HIP_VISIBLE_DEVICES=0,1
-PORT=8062
-```
+| 项目 | TP2 |
+|---|---|
+| `PROFILE` | `tp2` |
+| GPU 数 | 2 |
+| render node | 映射 `RENDER0-1` 对应的 2 个设备 |
+| 默认端口 | `8062` |
+| served model | `Qwen3.8-27B-W8A8-DFlash2-TP2` |
 
-只映射 **2 个**对应 render node。`.env` 中设置 `PROFILE=tp2` 后可直接：
-
-```bash
-bash run.sh
-```
+- **方式 A**：完整镜像 `docker run` 时设置 `PROFILE=tp2`，Docker 会自动进入镜像内 `/opt/qwen38-k100ai/entrypoint.tp2.sh`。
+- **方式 B / C**：仓库根目录 `.env` 设置 `PROFILE=tp2`、正确的 `RENDER0/1`，然后执行 `bash run.sh`。
 
 ## 7. 证据
 

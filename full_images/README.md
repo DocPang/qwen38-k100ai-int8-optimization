@@ -1,6 +1,6 @@
 # TP1 / TP2 / TP4 统一镜像入口
 
-本目录保存 **v1.1.0 TP1 / TP2 / TP4 统一系列** 的运行入口：
+本目录保存 **v1.1.1 部署版所使用的 TP1 / TP2 / TP4 统一运行入口**；推理 runtime payload 与 v1.1.0 已验收版本相同：
 
 - `entrypoint.sh`：读取 `PROFILE=tp1|tp2|tp4` 并分发；
 - `entrypoint_tp1.sh`：TP1；
@@ -19,7 +19,7 @@
 
 ## 当前推荐
 
-公开 v1.1.0 推荐从固定 SourceFind 基础镜像构建：
+v1.1.1 的 B/C 路线推荐从固定 SourceFind 基础镜像构建：
 
 ```bash
 cp .env.example .env
@@ -55,7 +55,7 @@ bash run.sh
 
 ## 离线使用
 
-v1.1.0 可以完全离线构建：
+v1.1.1 可以完全离线构建：
 
 1. 有网机器准备仓库、Target/Draft 权重、固定 SourceFind base image；
 2. `docker save` 基础镜像；

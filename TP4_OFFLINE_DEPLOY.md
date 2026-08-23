@@ -42,7 +42,25 @@ docker save -o sourcefind-sglang0512-k100ai-20260620.tar qwen38-sourcefind-base:
 - 压缩包：`qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst`
 - SHA256：`aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5`
 
-该包已经同时包含 Target 和 Draft，下载后**不要再执行下面的 HuggingFace 命令**。
+联网机器下载后可以先校验并解压：
+
+```bash
+ARCHIVE=qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst
+
+echo "aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5  $ARCHIVE" | sha256sum -c -
+zstd -t "$ARCHIVE"
+mkdir -p q38-weights
+zstd -dc "$ARCHIVE" | tar -xf - -C q38-weights
+```
+
+解压后的真实模型目录是：
+
+```text
+q38-weights/Qwen3.8-27B-K100AI-W8A8-DFlash2-Weights-20260823/target/Qwen3.8-27B-SmoothQuant-W8A8-INT8
+q38-weights/Qwen3.8-27B-K100AI-W8A8-DFlash2-Weights-20260823/draft/Qwen3.8-27B-DFlash2
+```
+
+也可以把压缩包本身搬到离线服务器后再执行同样的解压命令。该包已经同时包含 Target 和 Draft，下载后**不要再执行下面的 HuggingFace 命令**。
 
 **下载源 2：HuggingFace**
 
@@ -54,20 +72,20 @@ export HF_ENDPOINT=https://hf-mirror.com
 export HF_HUB_DISABLE_XET=1
 
 hf download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
-  --revision 417ede1 \
+  --revision 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e \
   --local-dir Qwen3.8-27B-SmoothQuant-W8A8-INT8
 
 hf download z-lab/Qwen3.8-27B-DFlash2 \
-  --revision 50307d4 \
+  --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
   --local-dir Qwen3.8-27B-DFlash2
 ```
 
 如果可以直接访问 HuggingFace，只需去掉两行 `export`。这仍然是同一个 HuggingFace 下载方案；两条 `hf download` 是该方案内需要的两份模型。
 
-### C. 本项目（固定 v1.1.0）
+### C. 本项目（固定 v1.1.1）
 
 ```bash
-git clone --branch v1.1.0 --depth 1 https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
+git clone --branch v1.1.1 --depth 1 https://github.com/DocPang/qwen38-k100ai-int8-optimization.git
 ```
 
 本项目不到 1MB。
@@ -134,15 +152,15 @@ docker load -i sourcefind-sglang0512-k100ai-20260620.tar
 docker image inspect qwen38-sourcefind-base:20260620 >/dev/null && echo OK
 ```
 
-然后直接使用仓库内已经验证过的 4 个预编译用户态 HIP 扩展构建薄优化镜像：
+然后使用仓库内已经验证过的 **7 个**预编译用户态 HIP 扩展构建薄优化镜像：
 
 ```bash
-cd /data/qwen38-offline/qwen38-w8a8-k100ai-dflash2-tp4
+cd /data/qwen38-offline/qwen38-k100ai-int8-optimization
 
 BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 ```
 
-默认 `build_image.sh` 不会启动编译容器，只会校验 v1.1.0 系列仓库内 `native_ext/prebuilt/` 的 7 个已验证 `.so`（覆盖 TP1/TP2/TP4 的公共与 profile-specific native 依赖），随后使用本地 SourceFind 底座构建薄优化镜像。
+默认 `build_image.sh` 不会启动编译容器，只会校验 v1.1.1 仓库内 `native_ext/prebuilt/` 的 7 个已验证 `.so`（与 v1.1.0 已验收 runtime 相同，覆盖 TP1/TP2/TP4 的公共与 profile-specific native 依赖），随后使用本地 SourceFind 底座构建薄优化镜像。
 
 如果你使用的不是本文锁定的 SourceFind/DTK 组合，或者明确希望从源码重编，可选执行：
 
@@ -152,7 +170,7 @@ BASE_IMAGE=qwen38-sourcefind-base:20260620 REBUILD_NATIVE=1 bash build_image.sh
 
 这个备用编译容器无网络、不映射 `/dev/kfd` 或 `renderD*`、不使用 privileged，只读挂载 `/opt/hyhal`。它编译的是用户态 `.so`，不会安装、卸载、重载或替换宿主机 `amdgpu` 驱动。
 
-这个流程使用刚才 `docker load` 的**本地基础镜像**，离线服务器不需要访问 SourceFind Harbor。我们已经在 K100AI 验证机的 Docker 18.09 环境实际完成了“四个源码编译 → Docker 镜像构建 → 无 GPU PyBind 动态加载”验证。
+这个流程使用刚才 `docker load` 的**本地基础镜像**，离线服务器不需要访问 SourceFind Harbor。我们已经在 K100AI 验证机的 Docker 18.09 环境实际完成了“7 个用户态 HIP 扩展源码编译 → Docker 镜像构建 → 无 GPU PyBind 动态加载”验证。
 
 ---
 
@@ -161,21 +179,27 @@ BASE_IMAGE=qwen38-sourcefind-base:20260620 REBUILD_NATIVE=1 bash build_image.sh
 复制配置模板：
 
 ```bash
-cd /data/qwen38-offline/qwen38-w8a8-k100ai-dflash2-tp4
+cd /data/qwen38-offline/qwen38-k100ai-int8-optimization
 cp .env.example .env
 ```
 
-编辑 `.env`，至少改成你自己的模型路径和 4 个 renderD：
+编辑 `.env`，至少确认 `PROFILE`、模型绝对路径和 4 个 renderD。下面以 TP4 为例：
 
 ```text
-TARGET_MODEL=/data/qwen38-offline/Qwen3.8-27B-SmoothQuant-W8A8-INT8
-DRAFT_MODEL=/data/qwen38-offline/Qwen3.8-27B-DFlash2
+PROFILE=tp4
+TARGET_MODEL=/绝对路径/Qwen3.8-27B-SmoothQuant-W8A8-INT8
+DRAFT_MODEL=/绝对路径/Qwen3.8-27B-DFlash2
 RENDER0=/dev/dri/renderDxxx
 RENDER1=/dev/dri/renderDxxx
 RENDER2=/dev/dri/renderDxxx
 RENDER3=/dev/dri/renderDxxx
-PORT=8068
+PORT=
+IMAGE_TAG=qwen38-k100ai-int8-series:local
+CUSTOM_AR=1
+P2P=1
 ```
+
+如果使用夸克整合权重包，先按主 README 的“模型权重下载（二选一）”解压并确认真实目录层级，再把其中 Target / Draft 的**绝对路径**填入这里。不要把压缩包最外层目录误当成模型目录。
 
 `renderDxxx` 必须换成自己服务器的实际设备号，不能照抄验证机。
 
@@ -190,7 +214,7 @@ bash run.sh
 看日志：
 
 ```bash
-docker logs -f --tail=100 qwen38-w8a8-k100ai-dflash2-tp4
+docker logs -f --tail=100 qwen38-tp4
 ```
 
 默认端口是 `8068`。长期运行的只有这一个模型服务容器。
@@ -214,7 +238,7 @@ BASE_IMAGE=qwen38-sourcefind-base:20260620 bash build_image.sh
 ## 一句话版
 
 ```text
-联网机：拉官方镜像 + 两份权重 + GitHub 仓库 → 搬到离线服务器
+联网机：拉官方镜像 + 一套模型权重（Target + Draft）+ GitHub 仓库 → 搬到离线服务器
 离线机：docker load → bash build_image.sh → bash run.sh
 ```
 

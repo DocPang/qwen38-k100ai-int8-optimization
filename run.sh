@@ -45,7 +45,7 @@ for d in "${renders[@]}"; do
   [[ -e "$d" ]] || { echo "ERROR: render node not found: $d" >&2; exit 8; }
 done
 
-docker image inspect "$IMAGE_TAG" >/dev/null 2>&1 || { echo "ERROR: image $IMAGE_TAG not found; run bash build_image.sh first" >&2; exit 9; }
+docker image inspect "$IMAGE_TAG" >/dev/null 2>&1 || { echo "ERROR: image $IMAGE_TAG not found; for A load the unified image first, for B/C run bash build_image.sh first" >&2; exit 9; }
 if docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
   echo "ERROR: container $CONTAINER_NAME already exists; refusing to replace it automatically" >&2
   exit 10
