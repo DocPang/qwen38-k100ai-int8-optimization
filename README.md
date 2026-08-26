@@ -43,7 +43,9 @@ TP4 并发总吞吐粗略参考（不同请求并发，总吞吐，不是单请�
 
 > 并发结果会受 prompt 长度、缓存命中、输出长度等影响，仅作为实际部署容量参考。
 
-完整性能表见 [PERFORMANCE.md](PERFORMANCE.md)。
+完整十档数据、TTFT、Decode 和历史测试结果见 [PERFORMANCE.md](PERFORMANCE.md)。原有测速 JSON 与图片继续保留在仓库中。
+
+![TP1 / TP2 / TP4 十档性能对比](assets/tp1_tp2_tp4_10level.png)
 
 ---
 
@@ -87,27 +89,96 @@ qwen38-k100ai-int8:unified-20260826-fa260728-q8split-rc2
 
 ---
 
-## 2. 准备模型
+## 2. 准备模型（两种下载方式二选一）
 
-本次镜像更新 **不包含模型权重**。如果你已经部署过上一版，Target / Draft 权重可以直接继续使用，不需要重新下载。
+镜像 **不包含模型权重**。如果你已经部署过上一版，原来的 Target / Draft 可以直接继续使用。
 
-需要两份模型：
+运行时必须同时有两份模型：
 
 - Target：`Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8`
 - Draft：`z-lab/Qwen3.8-27B-DFlash2`
 
-设置实际路径：
+**不需要 BF16 / FP16 Base 权重。**
 
-```bash
-export TARGET_MODEL=/path/to/Qwen3.8-27B-SmoothQuant-W8A8-INT8
-export DRAFT_MODEL=/path/to/Qwen3.8-27B-DFlash2
+### 方式 A：夸克完整权重包（推荐）
+
+一个压缩包里已经同时包含 Target + Draft：
+
+**[Qwen3.8-K100AI-Weights-20260823](https://pan.quark.cn/s/eb79a87216ba?pwd=Rcxc)**
+
+提取码：`Rcxc`
+
+文件：
+
+```text
+qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst
 ```
 
-不需要额外准备 BF16 / FP16 Base 权重。
+SHA256：
+
+```text
+aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5
+```
+
+解压并设置真实路径：
+
+```bash
+ARCHIVE=qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst
+
+echo "aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5  $ARCHIVE" | sha256sum -c -
+zstd -t "$ARCHIVE"
+
+mkdir -p "$HOME/models/q38-release"
+zstd -dc "$ARCHIVE" | tar -xf - -C "$HOME/models/q38-release"
+
+export WEIGHTS_ROOT="$HOME/models/q38-release/Qwen3.8-27B-K100AI-W8A8-DFlash2-Weights-20260823"
+export TARGET_MODEL="$WEIGHTS_ROOT/target/Qwen3.8-27B-SmoothQuant-W8A8-INT8"
+export DRAFT_MODEL="$WEIGHTS_ROOT/draft/Qwen3.8-27B-DFlash2"
+```
+
+上面两条 `TARGET_MODEL` / `DRAFT_MODEL` 已经对应整合包的真实目录层级，正常按这个位置解压就不用再改。
+
+### 方式 B：HuggingFace
+
+```bash
+python3 -m pip install -U huggingface_hub
+
+# 国内网络可选：
+export HF_ENDPOINT=https://hf-mirror.com
+export HF_HUB_DISABLE_XET=1
+
+MODEL_ROOT="$HOME/models"
+mkdir -p "$MODEL_ROOT"
+
+hf download Freaksterz/Qwen3.8-27B-SmoothQuant-W8A8-INT8 \
+  --revision 417ede1e4524c8fdbb586ebdabc9cfc5d0760b3e \
+  --local-dir "$MODEL_ROOT/Qwen3.8-27B-SmoothQuant-W8A8-INT8"
+
+hf download z-lab/Qwen3.8-27B-DFlash2 \
+  --revision 50307d4c4cde6860d4eee73e2547cd786fe8e8a4 \
+  --local-dir "$MODEL_ROOT/Qwen3.8-27B-DFlash2"
+
+export TARGET_MODEL="$MODEL_ROOT/Qwen3.8-27B-SmoothQuant-W8A8-INT8"
+export DRAFT_MODEL="$MODEL_ROOT/Qwen3.8-27B-DFlash2"
+```
+
+两种方式只选一种，不要重复下载。
 
 ---
 
 ## 3. 启动
+
+### 启动前真正需要确认 / 修改的值
+
+下面启动命令中，普通用户只需要确认这几项：
+
+1. `TARGET_MODEL`：Target 模型的**真实绝对路径**。如果按上面的夸克或 HuggingFace 命令设置，直接使用即可。
+2. `DRAFT_MODEL`：Draft 模型的**真实绝对路径**。同上。
+3. `R0 / R1 / R2 / R3`：你准备使用的 K100AI 在宿主机对应的真实 `/dev/dri/renderD*` 设备号。**这个必须按你自己的机器修改。**
+4. `PORT`：API 端口。默认值可以直接用；如果端口被占用，再改成别的端口。
+5. `MODEL_NAME`：客户端看到的模型名称，可以随便改；它只是 API 对外名称，不是模型文件夹名称。
+
+`HIP_VISIBLE_DEVICES` 在下面示例中已经按容器内 GPU 顺序写好，通常**不要改**。
 
 先确认准备使用的 GPU 对应哪个 `renderD*`：
 

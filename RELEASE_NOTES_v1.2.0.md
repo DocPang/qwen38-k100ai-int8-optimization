@@ -46,7 +46,25 @@ SHA256：
 215cfb3f15254b8c8cb790a091f21c27827d77abdcd89c7e86ebbc58a4fe6770
 ```
 
-完整导入、TP1 / TP2 / TP4 启动，以及端口 / 模型名称修改方式见仓库 README。
+## 模型权重（二选一下载）
+
+如果已经有上一版的 Target / Draft 权重，可以直接继续使用，不需要重新下载。
+
+推荐使用之前整理好的夸克完整权重包，一包同时包含 Target + Draft：
+
+- `Qwen3.8-K100AI-Weights-20260823`
+- https://pan.quark.cn/s/eb79a87216ba?pwd=Rcxc
+- 提取码：`Rcxc`
+- 文件：`qwen38-k100ai-w8a8-dflash2-weights-20260823.tar.zst`
+- SHA256：`aa33b9d1ed1e31b1f5c3c6989a302299ecb957ff3f2768f233fdaab17f0073f5`
+
+也可以按 README 中固定 revision 从 HuggingFace 分别下载 Target + Draft。**两种方式二选一，不需要 BF16 / FP16 Base 权重。**
+
+完整导入、真实权重目录、TP1 / TP2 / TP4 启动，以及端口 / 模型名称修改方式见仓库 README。
+
+## 历史性能数据
+
+上一版本的正式十档测速数据、JSON 结果和测速图片继续保留在仓库中，没有删除。详细结果见 `PERFORMANCE.md`、`results/` 和 `assets/`。
 
 ## 已知限制
 
