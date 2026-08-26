@@ -23,6 +23,36 @@
 
 > ⚠️ 本项目是社区研究成果，不是海光、SourceFind、Qwen、SGLang 或 DFlash2 官方发行版。请确保宿主机 K100AI 驱动、`/dev/kfd`、`/opt/hyhal` 和 Docker 本身工作正常。
 
+## 验证环境 / 建议基线
+
+本项目当前版本是在下面这套 K100AI 环境上开发和验收的。**建议宿主机环境尽量对齐，并且不要低于这套验证基线。** 更低版本不代表一定不能运行，只是本项目没有做过完整验证。
+
+| 项目 | 本项目验证环境 |
+|---|---|
+| GPU | Hygon K100AI / gfx928 |
+| OS | Kylin Linux Advanced Server V10 (Halberd) |
+| Host kernel / amdgpu | `4.19.90-89.27.v2401.ky10.x86_64` |
+| amdgpu 来源 | `kernel-modules-4.19.90-89.27.v2401.ky10.x86_64`（该环境未单独暴露 amdgpu `version:` 字段） |
+| hy-smi / hyhal | `hy-smi 1.20.0`，宿主机 `/opt/hyhal -> /usr/local/hyhal` |
+| DTK 基线 | `DTK-26.04-DCC2602-0317` |
+| Docker | `18.09.0`（更新版本通常也可使用） |
+| 镜像内 SGLang | `0.5.12+das.opt.dtk2604` |
+| 镜像内 Torch | `2.9.0+das.opt1.dtk2604.2605281139.gd0fc8c` |
+| 镜像内 flash-attn | `2.8.3+das.opt1.dtk2604.torch290.2607280958.gebb4be` |
+| KV Cache | BF16 |
+
+部署前建议先检查自己的宿主机：
+
+```bash
+uname -r
+/usr/local/hyhal/bin/hy-smi --version || hy-smi --version
+test -e /dev/kfd && echo '/dev/kfd: OK'
+test -d /opt/hyhal && echo '/opt/hyhal: OK'
+docker version
+```
+
+> 完整镜像已经固定 SGLang、Torch、flash-attn 等用户态运行环境，普通用户不要在容器内自行升级这些组件。真正需要重点确认的是宿主机 **K100AI 驱动 / 内核、hyhal、GPU 设备映射和 Docker** 是否正常。
+
 ## v1.2.0 更新
 
 - TP1 / TP2 / TP4 合并为 **同一个完整镜像**，通过 `PROFILE=tp1|tp2|tp4` 切换。
