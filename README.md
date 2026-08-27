@@ -19,7 +19,7 @@
 - **TP2：2 张 K100AI**
 - **TP4：4 张 K100AI**
 
-本次发布只提供 **完整 Docker 镜像**。不需要自己编译 SGLang、flash-attn 或本项目补丁。
+主版本提供 **完整 Docker 镜像**。从 v1.2.1 起，针对已导入 v1.2.0 镜像的用户同时提供可直接叠加的 **小型 hotfix layer**，不需要重新下载整套镜像，也不需要自己编译 SGLang / flash-attn。
 
 > ⚠️ 本项目是社区研究成果，不是海光、SourceFind、Qwen、SGLang 或 DFlash2 官方发行版。请确保宿主机 K100AI 驱动、`/dev/kfd`、`/opt/hyhal` 和 Docker 本身工作正常。
 
@@ -52,6 +52,19 @@ docker version
 ```
 
 > 完整镜像已经固定 SGLang、Torch、flash-attn 等用户态运行环境，普通用户不要在容器内自行升级这些组件。真正需要重点确认的是宿主机 **K100AI 驱动 / 内核、hyhal、GPU 设备映射和 Docker** 是否正常。
+
+## v1.2.1 TP4 raw-q8 hotfix
+
+v1.2.1 是基于 v1.2.0 的 **TP4-only 性能修复**，TP1 / TP2、权重和用户态依赖版本均不变。
+
+- 修正 SourceFind flash-attn 260728 raw `paged_attention` 的 TP4 layout ABI 适配；
+- 恢复 exact TP4 DFlash **single raw-q8 verifier**，不再为兼容性长期承受 `2 × q4` 的长 KV 重复扫描成本；
+- 16K / 64K / 128K / 257.9K isolated gate 与 v1.2.0 正确 reference **bitwise equal**；
+- full-model canonical 输出 SHA 在 16K / 64K / 128K / 257.9K 与 v1.2.0 正确版完全一致；
+- 128K 三次 Decode `87.90 / 87.33 / 87.36 tok/s`；257.9K 两次 `70.49 / 73.56 tok/s`；
+- 已有 v1.2.0 完整镜像的用户无需重新下载 6.6GB 镜像，直接执行 [`hotfixes/v1.2.1/apply.sh`](hotfixes/v1.2.1/apply.sh) 生成本地 v1.2.1 镜像。
+
+详细修复原理、验证范围和回滚方式见 [v1.2.1 Release Notes](RELEASE_NOTES_v1.2.1.md) 与 [hotfix README](hotfixes/v1.2.1/README.md)。
 
 ## v1.2.0 更新
 
@@ -233,8 +246,20 @@ ls -l /dev/dri/renderD*
 统一镜像：
 
 ```bash
+# v1.2.0 基础镜像
 export IMAGE=qwen38-k100ai-int8:unified-20260826-fa260728-q8split-rc2
 ```
+
+**TP4 用户建议先应用 v1.2.1 hotfix**（TP1 / TP2 使用该派生镜像也不会改变对应 payload）：
+
+```bash
+cd hotfixes/v1.2.1
+bash apply.sh
+cd ../..
+export IMAGE=qwen38-k100ai-int8:unified-20260827-v1.2.1
+```
+
+如果暂时不应用 hotfix，继续使用 v1.2.0 基础镜像也可以；它的 `2 × q4` verifier 正确，只是 TP4 长上下文 Decode 会慢一些。
 
 ### TP1：1 张卡
 
