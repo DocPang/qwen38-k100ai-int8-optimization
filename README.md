@@ -19,7 +19,7 @@
 - **TP2：2 张 K100AI**
 - **TP4：4 张 K100AI**
 
-主版本提供 **完整 Docker 镜像**。从 v1.2.1 起，针对已导入 v1.2.0 镜像的用户同时提供可直接叠加的 **小型 hotfix layer**，不需要重新下载整套镜像，也不需要自己编译 SGLang / flash-attn。
+当前推荐直接使用 **v1.2.2 完整 Docker 镜像**。普通用户不需要自己编译 SGLang / flash-attn，也不需要手工叠加历史 hotfix；旧版本的增量 hotfix 仅作为可选升级和回滚路径保留。
 
 > ⚠️ 本项目是社区研究成果，不是海光、SourceFind、Qwen、SGLang 或 DFlash2 官方发行版。请确保宿主机 K100AI 驱动、`/dev/kfd`、`/opt/hyhal` 和 Docker 本身工作正常。
 
@@ -52,6 +52,21 @@ docker version
 ```
 
 > 完整镜像已经固定 SGLang、Torch、flash-attn 等用户态运行环境，普通用户不要在容器内自行升级这些组件。真正需要重点确认的是宿主机 **K100AI 驱动 / 内核、hyhal、GPU 设备映射和 Docker** 是否正常。
+
+## v1.2.2 更新
+
+v1.2.2 是当前推荐正式版本，完整镜像已经包含 v1.2.1 的 TP4 raw-q8 修复和本次 DFlash2 non-greedy 修复。
+
+- 支持 `temperature` / `top_k` / `top_p` / `min_p` 的 DFlash2 speculative sampling；
+- 不再要求客户端必须把 `temperature` 固定为 0；
+- 修复旧 K100AI backport 中 non-greedy 请求触发 hard raise、进而导致 TP4 scheduler 退出的问题；
+- TP4 mixed c4（greedy + sampling）已实机验证 4/4 200 OK，四 rank verify audit 无分叉；
+- greedy 路径保持不变，candidate 与 v1.2.1 production 的完整 message SHA 对齐；
+- `sampling_seed`、DFlash-native grammar / `tool_choice=required`、non-greedy cache-resume 全矩阵仍属于后续范围，不在本版本过度声明。
+
+新部署用户直接使用 v1.2.2 完整镜像即可。已经部署旧版本、且不想重新导入完整镜像的用户，才需要使用 [`hotfixes/v1.2.2/apply.sh`](hotfixes/v1.2.2/apply.sh) 做增量升级。
+
+详细验证数据和已知边界见 [v1.2.2 Release Notes](RELEASE_NOTES_v1.2.2.md)。
 
 ## v1.2.1 TP4 raw-q8 hotfix
 
@@ -105,32 +120,34 @@ TP4 并发总吞吐粗略参考（不同请求并发，总吞吐，不是单请�
 
 ## 1. 下载完整镜像
 
+当前推荐版本：**v1.2.2**
+
 夸克网盘：
 
-**[Qwen3.8-K100AI-Unified-20260826-RC2](https://pan.quark.cn/s/156dd54a0861?pwd=2T8B)**
+**[Qwen3.8-K100AI-Unified-v1.2.2](https://pan.quark.cn/s/653e165c2fc7?pwd=DBia)**
 
-提取码：`2T8B`
+提取码：`DBia`
 
 镜像文件：
 
 ```text
-Qwen3.8-K100AI-Unified-20260826-RC2.tar.zst
+Qwen3.8-K100AI-Unified-v1.2.2.tar.zst
 ```
 
 SHA256：
 
 ```text
-215cfb3f15254b8c8cb790a091f21c27827d77abdcd89c7e86ebbc58a4fe6770
+91818fcc5ae0fc1cfcec6b6b9cc2950ee991f293fd16221ccd80e91fa069850d
 ```
 
-压缩包约 **6.6 GB**，Docker 镜像约 **33.9 GB**。
+压缩包约 **6.5 GiB（7.03 GB）**，解压后的 Docker tar 约 **31.6 GiB（33.90 GB）**。
 
 校验并导入：
 
 ```bash
-IMAGE_ARCHIVE=Qwen3.8-K100AI-Unified-20260826-RC2.tar.zst
+IMAGE_ARCHIVE=Qwen3.8-K100AI-Unified-v1.2.2.tar.zst
 
-echo "215cfb3f15254b8c8cb790a091f21c27827d77abdcd89c7e86ebbc58a4fe6770  $IMAGE_ARCHIVE" | sha256sum -c -
+echo "91818fcc5ae0fc1cfcec6b6b9cc2950ee991f293fd16221ccd80e91fa069850d  $IMAGE_ARCHIVE" | sha256sum -c -
 zstd -t "$IMAGE_ARCHIVE"
 zstd -dc "$IMAGE_ARCHIVE" | docker load
 ```
@@ -138,7 +155,7 @@ zstd -dc "$IMAGE_ARCHIVE" | docker load
 导入后的镜像：
 
 ```text
-qwen38-k100ai-int8:unified-20260826-fa260728-q8split-rc2
+qwen38-k100ai-int8:unified-20260827-v1.2.2
 ```
 
 ---
@@ -243,23 +260,13 @@ ls -l /dev/dri/renderD*
 
 下面使用 `renderD128` 开始举例，**请替换成你机器上的实际设备号**。
 
-统一镜像：
+导入 v1.2.2 完整镜像后，只需要指定镜像名：
 
 ```bash
-# v1.2.0 基础镜像
-export IMAGE=qwen38-k100ai-int8:unified-20260826-fa260728-q8split-rc2
+export IMAGE=qwen38-k100ai-int8:unified-20260827-v1.2.2
 ```
 
-**TP4 用户建议先应用 v1.2.1 hotfix**（TP1 / TP2 使用该派生镜像也不会改变对应 payload）：
-
-```bash
-cd hotfixes/v1.2.1
-bash apply.sh
-cd ../..
-export IMAGE=qwen38-k100ai-int8:unified-20260827-v1.2.1
-```
-
-如果暂时不应用 hotfix，继续使用 v1.2.0 基础镜像也可以；它的 `2 × q4` verifier 正确，只是 TP4 长上下文 Decode 会慢一些。
+下面 TP1 / TP2 / TP4 都直接使用这一份镜像，通过 `PROFILE` 选择并行模式。
 
 ### TP1：1 张卡
 
