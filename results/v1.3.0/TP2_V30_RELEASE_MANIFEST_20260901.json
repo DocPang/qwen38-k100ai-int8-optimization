@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "release": "TP2 v30",
+  "status": "FINAL",
+  "accept": true,
+  "date": "2026-09-01",
+  "generated_at": "2026-09-01T09:44:11.963249+00:00",
+  "classification": "Qwen3.8-27B W8A8 DFlash2 TP2 v30 K100AI production release",
+  "production": {
+    "container": "q38-tp2-v30-prod-gpu01",
+    "port": 8062,
+    "model": "Qwen3.8-27B-W8A8-DFlash2-TP2",
+    "gpus": [
+      0,
+      1
+    ],
+    "tp": 2,
+    "image_name": "harbor.sourcefind.cn:5443/dcu/admin/base/custom:sglang0.5.12-ubuntu22.04-dtk26.04-py3.10-20260620",
+    "image_id": "sha256:5d6305a6fb1695ebcb3675a7f9b87aca59478aaae21c9eeda3ebb59ddb5f9ad8",
+    "mem_fraction_static": 0.88,
+    "max_running_requests": 4
+  },
+  "patch_composition": [
+    "longtail-v1",
+    "frozen fallback layers 3,23",
+    "Mamba checkpoint8192 creation policy",
+    "TP124 v30 common release layer"
+  ],
+  "sources": {
+    "launcher": {
+      "path": "scripts/launch_tp2_v30_legacy_gpu01.sh",
+      "sha256": "3f5ddd4a67a9282e180850ef9ce0535b61bae24472f020d5ce97ebe8a09d73c2"
+    },
+    "entrypoint": {
+      "path": "scripts/entrypoint_tp2_v30.sh",
+      "sha256": "fcae5a1de1d27fc83adf0aa8ad06f4952c175dd4f9264021b117d0ed1b333881"
+    },
+    "profile_patch": {
+      "path": "runtime_patch_dflash_tp2_v30/sitecustomize.py",
+      "sha256": "2a81d3c9e8e1a8692bbe58e554d8282d2f6ddd787c1c421751b73af8b326548c"
+    },
+    "common_patch": {
+      "path": "runtime_patch_dflash_tp124_v30_common/sitecustomize.py",
+      "sha256": "8b8363efdef1f850fe6869cf07fb9a2367a36e45e488284c0f87380dd5193ef8"
+    },
+    "checkpoint_patch": {
+      "path": "/data/qwen38-27b-k100ai-int8-opt/runtime_patch_sglang_tp2_mamba_checkpoint8k_v1/sitecustomize.py",
+      "sha256": "656b9af810d8416ac0d147cb011603a59e1e75494d4022b997b52c9530afe475"
+    },
+    "longtail_patch": {
+      "path": "/data/qwen38-27b-k100ai-int8-opt/runtime_patch_sglang_tp2_longtail_varlen_v1/sitecustomize.py",
+      "sha256": "7b901ebb9137076684d6af0506b2d830ccbe3372466ff680ef255a3c0e89cd95"
+    },
+    "layerdiag_patch": {
+      "path": "/data/qwen38-27b-k100ai-int8-opt/runtime_patch_sglang_tp2_shortmid_layerdiag_v5/sitecustomize.py",
+      "sha256": "4135428a4c46d4f74c097e31c62ad6bc35b7621a30df9efd7fe1a959108aaea2"
+    },
+    "fallback_control": {
+      "path": "/data/qwen38-27b-k100ai-int8-opt/results/tp2_shortmid_layerdiag_fallback_layers.txt",
+      "sha256": "c454084d3e670b5ef3ed6e8473bc301164731bd0bb3c1137789658e1d2c9b627"
+    },
+    "guard": {
+      "path": "scripts/idle_cache_flush_guard.py",
+      "sha256": "30f96a40da43da691819c41dc2ad2d600baf1e63b53b0d53649910d046cf7c77"
+    }
+  },
+  "source_contract": {
+    "launcher": true,
+    "entrypoint": true,
+    "guard": true
+  },
+  "gates": {
+    "formal10": {
+      "path": "results/release_gate/tp2_v30_release_formal10_20260901.json",
+      "sha256": "83c71036200c8765659b986808b6820007dbe0aa072e8d2439ddbd199298e043",
+      "pass": true,
+      "lengths": [
+        512,
+        2048,
+        4096,
+        8192,
+        12288,
+        16384,
+        32768,
+        65536,
+        131072,
+        257900
+      ]
+    },
+    "cache_16k": {
+      "path": "results/release_gate/tp2_v30_release_cache16k_20260901.json",
+      "sha256": "3086e515b2b9c0c9f5897e7b1949979aaee169710b2e83eb6edd364a754f5220",
+      "pass": true,
+      "evidence_scope": "stable-name production fresh"
+    },
+    "cache_64k": {
+      "path": "results/release_gate/tp124_v30_20260901/tp2_checkpoint_v30_cache_resume_64k.json",
+      "sha256": "497872bded2fc8b2e4cbd6f417e4b454acd82e4c05d9bd0d2c4a8fb2c19c791d",
+      "pass": true,
+      "evidence_scope": "same image and patch composition before stable-name promotion"
+    },
+    "cache_139265": {
+      "path": "results/release_gate/tp124_v30_20260901/tp2_checkpoint_v30_cache_resume_16k_139265.json",
+      "sha256": "d7ae0cbdf30a179e88e053201f3b958f8a37e0a48869f694c45176e8494a2994",
+      "pass": true,
+      "evidence_scope": "same image and patch composition before stable-name promotion"
+    },
+    "function_matrix": {
+      "path": "results/release_gate/tp2_v30_release_function_matrix_20260901.json",
+      "sha256": "bd6c9035da9eafda6661fd4fc107fbb414703d61926ad7a4df1732edc40537dc",
+      "pass": true
+    },
+    "arithmetic20": {
+      "path": "results/release_gate/tp2_v30_release_arithmetic20_20260901.json",
+      "sha256": "4a7101454e540cf6100d36e93516ccee80dcf6a3b9b828091ff93743e169bd7b",
+      "pass": true,
+      "expected_score": "18/20",
+      "known_misses": [
+        8,
+        17
+      ]
+    },
+    "thinking_arithmetic20": {
+      "path": "results/release_gate/tp2_v30_release_thinking_arithmetic20_20260901.json",
+      "sha256": "0868ffab13fd059adec9632d977ded6e39f6fafaf0186f89267c0bcf8cdc93ab",
+      "pass": true
+    },
+    "disconnect_stream": {
+      "path": "results/release_gate/tp2_v30_release_disconnect_stream_20260901.json",
+      "sha256": "76914ac99c9b342fad479558c00a09a71d37d16843b882df4f3eaf2275393b49",
+      "pass": true
+    },
+    "disconnect_nonstream": {
+      "path": "results/release_gate/tp2_v30_release_disconnect_nonstream_20260901.json",
+      "sha256": "e1981f247a6ac2a1f58cc5a3b5fe02c120dc3db99da8cfbcf37e32edbd31729c",
+      "pass": true
+    }
+  },
+  "runtime": {
+    "container": {
+      "name": "q38-tp2-v30-prod-gpu01",
+      "status": "running",
+      "running": true,
+      "restart_count": 0,
+      "oom_killed": false,
+      "started_at": "2026-09-01T00:36:42.018295394Z",
+      "image_name": "harbor.sourcefind.cn:5443/dcu/admin/base/custom:sglang0.5.12-ubuntu22.04-dtk26.04-py3.10-20260620",
+      "image_id": "sha256:5d6305a6fb1695ebcb3675a7f9b87aca59478aaae21c9eeda3ebb59ddb5f9ad8",
+      "restart_policy": "no"
+    },
+    "endpoint": {
+      "models": [
+        "Qwen3.8-27B-W8A8-DFlash2-TP2"
+      ],
+      "model_identity_pass": true,
+      "loads": {
+        "total_running_reqs": 0,
+        "total_waiting_reqs": 0,
+        "total_reqs": 0,
+        "total_used_tokens": 0,
+        "total_tokens": 0,
+        "avg_token_usage": 0.0,
+        "avg_throughput": 0.0,
+        "avg_utilization": 0.0
+      },
+      "idle": true
+    },
+    "idle_cache_flush_guard": {
+      "unit": "q38-idle-flush-tp2.service",
+      "active": true,
+      "enabled": true,
+      "fragment": "/etc/systemd/system/q38-idle-flush-tp2.service",
+      "sha256": "920f359572cc2e511db510ea78d5bf62a5c56f5f348049ec0a8362cd163532dd"
+    },
+    "pass": true
+  },
+  "known_limitations": [
+    "TP2 must remain on the verified legacy SourceFind image; the unified image regresses arithmetic correctness.",
+    "No-thinking arithmetic remains 18/20 with only historical misses case 8 and 17.",
+    "The 128K formal10 row is a stable local performance dip, not a correctness failure."
+  ],
+  "performance_claim_boundary": "Same-build formal10 is retained intact. Targeted repeats adjudicate observed state instability; they are not combined with other rows into a cross-run best-of champion curve."
+}

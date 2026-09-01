@@ -1,7 +1,9 @@
 # TP1 Profile：Qwen3.8-27B W8A8 + DFlash2 on K100AI
 
+> **v1.3.0 / v30 FINAL（2026-09-01）**：当前正式链为 `Final-v2 -> Mamba checkpoint8192 -> Hybrid14 -> TP124 v30 common`。16K/64K/139,265 cache-resume 均为 deterministic cold==cached；function matrix 9/9；thinking arithmetic 20/20；no-thinking 保持历史 18/20[8,17]；stream/non-stream disconnect 自动回收。正式 manifest 见 [`results/v1.3.0/TP1_V30_RELEASE_MANIFEST_20260901.json`](results/v1.3.0/TP1_V30_RELEASE_MANIFEST_20260901.json)。以下 2026-08-23 内容保留为 v1.2.x 基线与历史性能说明。
+
 > **1× K100AI · 262K context · 单卡最终发布版**
-> 状态：**ACCEPTED / FINAL**（2026-08-23）
+> v1.2.x 基线状态：**ACCEPTED / FINAL**（2026-08-23）
 
 > 当前公开版本已经替代此前的单卡 128K 方案，并把正式验收范围扩展到 257.9K。旧研究期证据不再放入公开仓库。
 

@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "classification": "TP2 v30 final release functionality matrix",
+  "candidate_model": "Qwen3.8-27B-W8A8-DFlash2-TP2",
+  "baseline_model": "Qwen3.8-27B-W8A8-DFlash2-TP4",
+  "rows": [
+    {
+      "name": "greedy_exact_prod",
+      "status": 200,
+      "baseline_status": 200,
+      "pass": true,
+      "candidate_sha": "61566744160bdbdbfdc8d1e217643cd2ce1ca5e9918f8bce2b224bf51a02cc3c",
+      "baseline_sha": "61566744160bdbdbfdc8d1e217643cd2ce1ca5e9918f8bce2b224bf51a02cc3c",
+      "candidate_wall_s": 0.6076920032501221,
+      "baseline_wall_s": 0.797492265701294
+    },
+    {
+      "name": "nongreedy",
+      "status": 200,
+      "pass": true,
+      "n_ids": 96,
+      "sha": "b2f645c1e3482976742383b06cf67824d3974837ed9180bc09dfbe3d600e032b",
+      "wall_s": 2.441936731338501
+    },
+    {
+      "name": "nongreedy_minp",
+      "status": 200,
+      "pass": true,
+      "n_ids": 96,
+      "sha": "b2f645c1e3482976742383b06cf67824d3974837ed9180bc09dfbe3d600e032b",
+      "wall_s": 2.39449405670166
+    },
+    {
+      "name": "nongreedy_seed_best_effort",
+      "status": 200,
+      "pass": true,
+      "n_ids": 96,
+      "sha": "b2f645c1e3482976742383b06cf67824d3974837ed9180bc09dfbe3d600e032b",
+      "wall_s": 2.7285876274108887
+    },
+    {
+      "name": "json_schema",
+      "status": 200,
+      "pass": true,
+      "text": "{\"city\":\"Haian\",\"count\":7}",
+      "wall_s": 0.5487730503082275
+    },
+    {
+      "name": "regex",
+      "status": 200,
+      "pass": true,
+      "text": "ID-0427",
+      "wall_s": 0.44512009620666504
+    },
+    {
+      "name": "tool_required",
+      "status": 200,
+      "pass": true,
+      "tool_names": [
+        "calculator"
+      ],
+      "wall_s": 1.2689640522003174
+    },
+    {
+      "name": "tool_named",
+      "status": 200,
+      "pass": true,
+      "tool_names": [
+        "weather"
+      ],
+      "wall_s": 1.4185960292816162
+    },
+    {
+      "name": "mixed_c3",
+      "pass": true,
+      "requests": [
+        {
+          "kind": "tool",
+          "status": 200,
+          "ok": true,
+          "wall_s": 3.599684476852417
+        },
+        {
+          "kind": "json",
+          "status": 200,
+          "ok": true,
+          "wall_s": 1.6970295906066895
+        },
+        {
+          "kind": "seed",
+          "status": 200,
+          "ok": true,
+          "wall_s": 5.138640880584717,
+          "n_ids": 96
+        }
+      ]
+    }
+  ],
+  "pass": true
+}

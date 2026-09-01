@@ -1,7 +1,9 @@
 # TP2 Profile：Qwen3.8-27B W8A8 + DFlash2 on K100AI
 
+> **v1.3.0 / v30 FINAL（2026-09-01）**：当前正式链为 `longtail-v1/{3,23} -> Mamba checkpoint8192 -> TP124 v30 common`。16K/64K/139,265 cache-resume PASS；function matrix 9/9；thinking arithmetic 20/20；no-thinking 保持历史 18/20[8,17]；stream/non-stream disconnect 自动回收；257.9K formal10 Decode 59.03 tok/s。TP2 必须固定 legacy SourceFind image，不能使用 unified image。正式 manifest 见 [`results/v1.3.0/TP2_V30_RELEASE_MANIFEST_20260901.json`](results/v1.3.0/TP2_V30_RELEASE_MANIFEST_20260901.json)。以下 2026-08-22 内容保留为 v1.2.x 基线说明。
+
 > **2× K100AI · 262K context · 双卡最终发布版**  
-> 状态：**ACCEPTED / FINAL**（2026-08-22）
+> v1.2.x 基线状态：**ACCEPTED / FINAL**（2026-08-22）
 
 ## 1. 最终配置
 

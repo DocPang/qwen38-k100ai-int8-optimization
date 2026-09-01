@@ -2,6 +2,8 @@
 
 [← 返回项目总览](README.md) · [TP1](TP1.md) · [TP2](TP2.md) · [三档最终十档](PERFORMANCE.md)
 
+> **v1.3.0 / v30 FINAL（2026-09-01）**：TP4 production 已完成 request/lifecycle、工具、并发、公网与断连闭环；v1.3.0 发布不改动 GPU4-7 的既有 v30 服务。机器可读 authority 见 [`results/v1.3.0/TP4_V30_CHAMPION_MANIFEST_20260901.json`](results/v1.3.0/TP4_V30_CHAMPION_MANIFEST_20260901.json)。
+
 > **当前公开说明（2026-08-27）**：TP4 与 TP1 / TP2 统一打包为 `PROFILE=tp1|tp2|tp4` 系列。v1.2.1 在 v1.2.0 RC2 基础上提供 TP4 raw-q8 性能 hotfix，修正 SourceFind flash-attn 260728 的 layout ABI 并恢复 single q8 verifier；TP1 / TP2 不变。已有 v1.2.0 镜像无需重新下载整包，见 [`hotfixes/v1.2.1`](hotfixes/v1.2.1/README.md)。本文保留 TP4 的完整技术说明，但不再使用研发期迭代号作为产品名称。
 
 > ⚠️ **免责声明 / 风险提示**

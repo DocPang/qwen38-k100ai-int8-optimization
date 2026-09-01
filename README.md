@@ -19,7 +19,7 @@
 - **TP2：2 张 K100AI**
 - **TP4：4 张 K100AI**
 
-当前推荐直接使用 **v1.2.2 完整 Docker 镜像**。普通用户不需要自己编译 SGLang / flash-attn，也不需要手工叠加历史 hotfix；旧版本的增量 hotfix 仅作为可选升级和回滚路径保留。
+当前最新 production profile release 是 **v1.3.0 / v30**。它复用 v1.2.2 完整 Docker 镜像作为 TP1/TP4 二进制基线，并为 TP1/TP2/TP4 冻结新的 correctness、cache-resume、工具/API、断连回收和显存守护合同。全新安装仍先取得 v1.2.2 完整镜像，再按 [`v1.3.0/`](v1.3.0/) 安装精确 overlay；TP2 必须保留验证过的 legacy SourceFind image，不能为了形式统一切换到 unified image。
 
 > ⚠️ 本项目是社区研究成果，不是海光、SourceFind、Qwen、SGLang 或 DFlash2 官方发行版。请确保宿主机 K100AI 驱动、`/dev/kfd`、`/opt/hyhal` 和 Docker 本身工作正常。
 
@@ -52,6 +52,21 @@ docker version
 ```
 
 > 完整镜像已经固定 SGLang、Torch、flash-attn 等用户态运行环境，普通用户不要在容器内自行升级这些组件。真正需要重点确认的是宿主机 **K100AI 驱动 / 内核、hyhal、GPU 设备映射和 Docker** 是否正常。
+
+## v1.3.0 / v30 更新
+
+v1.3.0 是当前最新 correctness-first production profile release：
+
+- TP1：`Final-v2 -> checkpoint8192 -> Hybrid14 -> v30 common`；
+- TP2：`longtail-v1/{3,23} -> checkpoint8192 -> v30 common`，继续固定 legacy SourceFind image；
+- TP4：保持既有 v30 FINAL，不在本版本返工；
+- TP1/TP2 的 16K、64K、139,265 cache-resume 均为 deterministic cold==cached；
+- greedy、sampling、min-p、seed、JSON/regex grammar、required/named tool、mixed c3 全部通过；
+- thinking arithmetic 20/20；no-thinking 保持历史 18/20[8,17]，没有新增回归；
+- stream/non-stream 客户端断连都能自动回收并继续健康 serving；
+- 新增外置 idle-cache guard，只在服务完全 idle 时调用官方 `/flush_cache`。
+
+发布包、安装边界和机器可读证据见 [v1.3.0 Release Notes](RELEASE_NOTES_v1.3.0.md) 与 [`v1.3.0/`](v1.3.0/)。v1.2.2 完整镜像仍是新安装用户需要下载的二进制基线。
 
 ## v1.2.2 更新
 
@@ -120,7 +135,7 @@ TP4 并发总吞吐粗略参考（不同请求并发，总吞吐，不是单请�
 
 ## 1. 下载完整镜像
 
-当前推荐版本：**v1.2.2**
+当前完整镜像基线：**v1.2.2**（最新 production profile release：**v1.3.0 / v30**）
 
 夸克网盘：
 
@@ -291,6 +306,8 @@ docker run -d \
 ```
 
 ### TP2：2 张卡
+
+> **v1.3.0 correctness warning：**下面的 unified-image 命令只保留为 v1.2.2 基线示例。v1.3.0 TP2 正式链必须使用 [`v1.3.0/`](v1.3.0/) 中固定的 legacy SourceFind launcher；unified image 在 TP2 冻结 arithmetic gate 上有质量回归，不得作为 v1.3.0 TP2 production。
 
 ```bash
 export R0=/dev/dri/renderD128

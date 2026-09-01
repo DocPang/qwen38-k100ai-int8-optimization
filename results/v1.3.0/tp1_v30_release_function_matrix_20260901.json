@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "classification": "TP1 v30 stable production functionality matrix",
+  "candidate_model": "Qwen3.8-27B-W8A8-DFlash2-TP1",
+  "baseline_model": "Qwen3.8-27B-W8A8-DFlash2-TP4",
+  "rows": [
+    {
+      "name": "greedy_exact_prod",
+      "status": 200,
+      "baseline_status": 200,
+      "pass": true,
+      "candidate_sha": "61566744160bdbdbfdc8d1e217643cd2ce1ca5e9918f8bce2b224bf51a02cc3c",
+      "baseline_sha": "61566744160bdbdbfdc8d1e217643cd2ce1ca5e9918f8bce2b224bf51a02cc3c",
+      "candidate_wall_s": 5.5843446254730225,
+      "baseline_wall_s": 0.8951382637023926
+    },
+    {
+      "name": "nongreedy",
+      "status": 200,
+      "pass": true,
+      "n_ids": 96,
+      "sha": "d551040b36ecb605a0870525c24cca641e8d48dfa14c89870beb2b4043acf81c",
+      "wall_s": 4.127323865890503
+    },
+    {
+      "name": "nongreedy_minp",
+      "status": 200,
+      "pass": true,
+      "n_ids": 35,
+      "sha": "63d59d1bdecebf7a2ccf8bf61c67d276676c0850e6790205895efab2f53d842a",
+      "wall_s": 2.054328203201294
+    },
+    {
+      "name": "nongreedy_seed_best_effort",
+      "status": 200,
+      "pass": true,
+      "n_ids": 96,
+      "sha": "ba9e1dbbf0806d60ecb33b828e413bc5ae1250d805f2653d1fa8a8e7d2335c4b",
+      "wall_s": 13.009746313095093
+    },
+    {
+      "name": "json_schema",
+      "status": 200,
+      "pass": true,
+      "text": "{\"city\":\"Haian\",\"count\":7}",
+      "wall_s": 0.6167697906494141
+    },
+    {
+      "name": "regex",
+      "status": 200,
+      "pass": true,
+      "text": "ID-0427",
+      "wall_s": 0.7722938060760498
+    },
+    {
+      "name": "tool_required",
+      "status": 200,
+      "pass": true,
+      "tool_names": [
+        "calculator"
+      ],
+      "wall_s": 2.1383771896362305
+    },
+    {
+      "name": "tool_named",
+      "status": 200,
+      "pass": true,
+      "tool_names": [
+        "weather"
+      ],
+      "wall_s": 2.641727924346924
+    },
+    {
+      "name": "mixed_c3",
+      "pass": true,
+      "requests": [
+        {
+          "kind": "tool",
+          "status": 200,
+          "ok": true,
+          "wall_s": 1.95981764793396
+        },
+        {
+          "kind": "json",
+          "status": 200,
+          "ok": true,
+          "wall_s": 6.557282447814941
+        },
+        {
+          "kind": "seed",
+          "status": 200,
+          "ok": true,
+          "wall_s": 6.003197193145752,
+          "n_ids": 96
+        }
+      ]
+    }
+  ],
+  "pass": true
+}

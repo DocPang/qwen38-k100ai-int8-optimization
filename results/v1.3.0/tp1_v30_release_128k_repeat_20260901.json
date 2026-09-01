@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "contract": "tp1_v30_release_128k_repeat",
+  "endpoint": "/v1/completions",
+  "mode": "DFlash2",
+  "decode_tps_definition": "(completion_tokens-1)/从首个流式 token 到请求结束的 wall time",
+  "port": 8042,
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP1",
+  "output_tokens": 256,
+  "prompt_corpus_in": null,
+  "prompt_corpus_out": null,
+  "status": "complete",
+  "rows": [
+    {
+      "requested_prompt_tokens": 131072,
+      "prompt_tokens": 131072,
+      "completion_tokens": 256,
+      "mode": "DFlash2",
+      "prompt_sha256": "a5821e88fd411fd7282ea080f39f922e6a281b189865d8adde881e1a72f27eb1",
+      "prompt_token_ids_sha256": "57884eebfe54abb390d9aedc5059b2e7123de2c83e0cdb6c94408d7688167431",
+      "prompt_utf8_bytes": 884610,
+      "prompt_source": "runtime-generated-single-token-units-v2",
+      "retokenized_output_tokens": 256,
+      "retokenized_output_token_ids_sha256": "13471bc67dea1918a16c6b4a88107a1580fc26899374e18a4e9d2d3e92123f4d",
+      "ttft_s": 175.32291215308942,
+      "prefill_proxy_tps": 747.6033702061134,
+      "decode_tps": 32.1618082436422,
+      "total_s": 183.25157083012164,
+      "sha256": "42cf744be54c5a628e4008b3ba8a0afb9ac1ace0dc4f6dfd9dc022cd39ddebf8",
+      "max_running": 0.0,
+      "max_waiting": 0.0,
+      "metrics_supported": true,
+      "contaminated": false,
+      "drafted": 0.0,
+      "accepted": 0.0,
+      "accept_rate": 0.7428571428571429,
+      "mean_accept_len": 6.2
+    }
+  ]
+}

@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "classification": "TP4 v29 disconnect-auto-abort gate",
+  "timestamp": "2026-09-01T08:52:10.497645+00:00",
+  "base_url": "http://127.0.0.1:8062",
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP2",
+  "rid": "gate-disconnect-df15e51373ce4a0a90fefd395b7f9a04",
+  "stream": true,
+  "kill_signal": "kill",
+  "max_tokens": 8192,
+  "before": {
+    "running": 0,
+    "waiting": 0,
+    "throughput": 2.14,
+    "token_usage": 0.0,
+    "speculative": {
+      "accept_length": 3.964426877470356,
+      "accept_rate": 0.38571428571428573
+    }
+  },
+  "running_seen_at": 1788252726.4401186,
+  "kill_time": 1788252727.4847429,
+  "child_returncode": -9,
+  "child_stderr": "",
+  "auto_zero_at": 1788252729.809897,
+  "auto_abort_latency_s": 2.3251540660858154,
+  "abort_deadline_s": 8.0,
+  "explicit_cleanup_required": false,
+  "explicit_abort_status": null,
+  "final_load": {
+    "running": 0,
+    "waiting": 0,
+    "throughput": 38.7,
+    "token_usage": 0.0,
+    "speculative": {
+      "accept_length": 3.962457337883959,
+      "accept_rate": 0.42142857142857143
+    }
+  },
+  "post_abort_smoke": {
+    "status": 200,
+    "ok": true,
+    "body": "{\"text\":\"\\n\\nABORT_GATE_OK\",\"output_ids\":[271,1803,2775,78322,8116,248044],\"meta_info\":{\"id\":\"15641ac94e084b51b25afcc206fa20ce\",\"finish_reason\":{\"type\":\"stop\",\"matched\":248044},\"prompt_tokens\":8,\"weight_version\":\"default\",\"num_retractions\":0,\"queue_time\":0.0,\"reasoning_tokens\":0,\"completion_tokens\":6,\"cached_tokens\":0,\"cached_tokens_details\":null,\"dp_rank\":null,\"e2e_latency\":0.47549030696973205,\"spec_accept_rate\":0.21428571428571427,\"spec_accept_length\":3.0,\"spec_num_correct_drafts\":3,\"spec_num_proposed_drafts\":14,\"spec_verify_ct\":2,\"spec_accepted_drafts\":3,\"spec_proposed_drafts\":14,\"request_received_ts\":1788252729.8165207,\"api_server_dispatch_finish_ts\":1788252729.8171332,\"request_finished_ts\":1788252730.292011,\"decode_throughput\":2873656.694767831,\"response_sent_to_client_ts\":1788252730.292217}}"
+  },
+  "container_health": {
+    "available": true,
+    "returncode": 0,
+    "text": "status=running restart=0 oom=false",
+    "healthy": true
+  },
+  "logs": {
+    "available": true,
+    "returncode": 0,
+    "rid_lines": [
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=18 rid=gate-disconnect-df15e51373ce4a0a90fefd395b7f9a04 protected=0 committed=279 allocated=286",
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=18 rid=gate-disconnect-df15e51373ce4a0a90fefd395b7f9a04 protected=0 committed=279 allocated=286",
+      "[K100 DFlash TP4 page-reclaim-fix-v4] ACTIVE event=92 rid=gate-disconnect-df15e51373ce4a0a90fefd395b7f9a04 tracked_pages=4 reclaimed_pages=[3971, 3972, 3973, 3976]",
+      "[K100 DFlash TP4 page-reclaim-fix-v4] ACTIVE event=92 rid=gate-disconnect-df15e51373ce4a0a90fefd395b7f9a04 tracked_pages=4 reclaimed_pages=[3971, 3972, 3973, 3976]"
+    ],
+    "abort_lines": [
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=17 rid=gate-disconnect-24208ce5243843cab18e14e6aef2cf7a protected=0 committed=288 allocated=295",
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=17 rid=gate-disconnect-24208ce5243843cab18e14e6aef2cf7a protected=0 committed=288 allocated=295",
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=18 rid=gate-disconnect-df15e51373ce4a0a90fefd395b7f9a04 protected=0 committed=279 allocated=286",
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=18 rid=gate-disconnect-df15e51373ce4a0a90fefd395b7f9a04 protected=0 committed=279 allocated=286"
+    ],
+    "critical_lines": [],
+    "rid_seen": true,
+    "abort_evidence": true,
+    "critical_count": 0
+  },
+  "samples": [
+    {
+      "phase": "startup",
+      "t": 1788252725.8479688,
+      "dt": 0.04317522048950195,
+      "running": 0,
+      "waiting": 0,
+      "throughput": 2.14,
+      "token_usage": 0.0,
+      "speculative": {
+        "accept_length": 3.964426877470356,
+        "accept_rate": 0.38571428571428573
+      }
+    },
+    {
+      "phase": "startup",
+      "t": 1788252726.10105,
+      "dt": 0.29625630378723145,
+      "running": 0,
+      "waiting": 0,
+      "throughput": 2.14,
+      "token_usage": 0.0001,
+      "speculative": {
+        "accept_length": 3.964426877470356,
+        "accept_rate": 0.38571428571428573
+      }
+    },
+    {
+      "phase": "startup",
+      "t": 1788252726.4401186,
+      "dt": 0.6353249549865723,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 2.14,
+      "token_usage": 0.0001,
+      "speculative": {
+        "accept_length": 3.964426877470356,
+        "accept_rate": 0.38571428571428573
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252727.4879708,
+      "dt": 1.6831772327423096,
+      "since_kill": 0.0032279491424560547,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 2.14,
+      "token_usage": 0.0002,
+      "speculative": {
+        "accept_length": 3.964426877470356,
+        "accept_rate": 0.38571428571428573
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252727.7546225,
+      "dt": 1.949828863143921,
+      "since_kill": 0.2698795795440674,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0003,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252728.0531447,
+      "dt": 2.2483510971069336,
+      "since_kill": 0.5684018135070801,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0003,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252728.3442957,
+      "dt": 2.5395021438598633,
+      "since_kill": 0.8595528602600098,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0003,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252728.636387,
+      "dt": 2.8315935134887695,
+      "since_kill": 1.151644229888916,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0003,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252728.9288304,
+      "dt": 3.1240367889404297,
+      "since_kill": 1.4440875053405762,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0003,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252729.2220154,
+      "dt": 3.417221784591675,
+      "since_kill": 1.7372725009918213,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0003,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252729.5183809,
+      "dt": 3.7135872840881348,
+      "since_kill": 2.0336380004882812,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0003,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788252729.809897,
+      "dt": 4.005103349685669,
+      "since_kill": 2.3251540660858154,
+      "running": 0,
+      "waiting": 0,
+      "throughput": 38.7,
+      "token_usage": 0.0,
+      "speculative": {
+        "accept_length": 3.962457337883959,
+        "accept_rate": 0.42142857142857143
+      }
+    }
+  ],
+  "pass": true
+}

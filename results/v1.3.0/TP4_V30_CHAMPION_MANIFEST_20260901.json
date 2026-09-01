@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "release": "TP4 v30",
+  "status": "FINAL",
+  "date": "2026-09-01",
+  "classification": "Qwen3.8-27B W8A8 DFlash2 TP4 K100AI production release",
+  "parent_release": "v29-RC3",
+  "image": "qwen38-k100ai-int8:unified-20260827-v1.2.2",
+  "production": {
+    "container": "q38-tp4-v30-prod",
+    "gpu_physical": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "tp_size": 4,
+    "port": 8068,
+    "served_model": "Qwen3.8-27B-W8A8-DFlash2-TP4",
+    "context_length": 262144,
+    "mem_fraction_static": 0.95,
+    "max_running_requests": 8,
+    "pp_max_micro_batch_size": 8,
+    "max_total_tokens": 1048576,
+    "warmups": [
+      1024,
+      2048,
+      2230
+    ],
+    "deployment_state": "DEPLOYED on GPU4-7; q38-tp4-v30-prod running restart=0 oom=false; restart policy unless-stopped; VPS relay E2E verified"
+  },
+  "changes": [
+    "<2K cold batch1 paged-varlen attention: BT_STRIDE_B changed from per-page-count constexpr specialization to runtime scalar; value/alignment specialization disabled.",
+    "2048..4095 historical short-Q one-pass retained; compile MAX_Q/K bucketed to 4096 while runtime cu_seqlens/grid stay exact.",
+    "VARLEN short-Q vendor BATCH_SIZE compile key fixed to 1 because q.shape[0] is total tokens and the kernel does not use BATCH_SIZE.",
+    "Pre-listen SGLang warmup for 1024/2048/2230, followed by explicit KV/Radix cache flush before HTTP starts listening.",
+    "bs4..bs8 request-wise native-q8 verifier path retained from the validated high-concurrency fix; v29 allocator/abort/RC3 feature chain preserved."
+  ],
+  "safety_boundary": {
+    "shortq_exact_gate": "cold batch1 q==kv, 2048<=q<=4095, layer63 parent; all non-exact shapes parent fallback",
+    "lt2k_gate": "cold batch1 q==kv, 64<=q<2048; all other paths parent fallback",
+    "ge4096_model_math_changed": false,
+    "ultralong_257900_test_omitted_by_user": true
+  },
+  "sources": {
+    "runtime_patch_v30": {
+      "path": "runtime_patch_dflash_tp4_v30/sitecustomize.py",
+      "sha256": "961a6b781add4a7c625f40eb1b3a6298a7b13bedc3a7117e41149ea42706ce99"
+    },
+    "shortq_bucket4096_v2": {
+      "path": "runtime_patch_dflash_tp4_shortq_bucket4096_v2/sitecustomize.py",
+      "sha256": "9a098253bdcaad0f7edb4cb09ce7da59d7ea4e8b9a497c2a39989b485715e738"
+    },
+    "paged_btstride_runtime_v2": {
+      "path": "runtime_patch_dflash_tp4_paged_btstride_runtime_v2/sitecustomize.py",
+      "sha256": "8dc2360a2be9285ee4bfbb3e68171c42f9a164630cddc92f9ce94c11fa4e7c14"
+    },
+    "requestwise_q8_bs2_8": {
+      "path": "runtime_patch_dflash_tp4_requestwise_q8_graph_c8probe_v1/sitecustomize.py",
+      "sha256": "e46c2cea38bd0e7d630d682cf5870d83663630b242c4c6fb312b9bfecfa4428d"
+    },
+    "v29_rc3_parent": {
+      "path": "runtime_patch_dflash_tp4_v29_rc3/sitecustomize.py",
+      "sha256": "84911d72dff9417fc1be6c70a0c0e9fb234d9f9bd0ea027ac8a92b440aa21d5b"
+    },
+    "qwen3_coder_detector": {
+      "path": "runtime_patch_dflash_tp4_v29_rc3/qwen3_coder_detector_pr25246.py",
+      "sha256": "c3a64b44c1f15b5e9e581fb3eeb2afde78da580f09a23e6d705baca06ceae1d6"
+    },
+    "prod_entrypoint": {
+      "path": "scripts/entrypoint_tp4_v30_prod.sh",
+      "sha256": "b864c2799fe0a403c75a2c79eed7ba69b7da34ee1f3a5064b592def05fd63dd0"
+    },
+    "prod_launcher": {
+      "path": "scripts/launch_tp4_v30_prod_gpu4567.sh",
+      "sha256": "949d5dcf1abf74ab7ee10f06103f69db5af94fbb1019cd7d2992522e45e17b03"
+    },
+    "native_assign_fixed8_i64_so": {
+      "path": "/data/qwen38-dflash2-k100ai/native_ext/k100_assign_fixed8_i64_v1.so",
+      "sha256": "d74d527ad3f2e0e21eb0941d3627be59a222e6bbeb2f60f8ebd4eba43e4b4217"
+    }
+  },
+  "gates": {
+    "function_matrix": {
+      "artifact": "results/release_gate/tp4_v30_rc2_function_matrix_20260901.json",
+      "sha256": "bf39fae3d5b33fbca81a8cbeab8f0e58f275b1a62a706c880427872d60159fc5",
+      "pass": true,
+      "rows": [
+        [
+          "greedy_exact_prod",
+          true
+        ],
+        [
+          "nongreedy",
+          true
+        ],
+        [
+          "nongreedy_minp",
+          true
+        ],
+        [
+          "nongreedy_seed_best_effort",
+          true
+        ],
+        [
+          "json_schema",
+          true
+        ],
+        [
+          "regex",
+          true
+        ],
+        [
+          "tool_required",
+          true
+        ],
+        [
+          "tool_named",
+          true
+        ],
+        [
+          "mixed_c3",
+          true
+        ]
+      ],
+      "greedy_sha256": "61566744160bdbdbfdc8d1e217643cd2ce1ca5e9918f8bce2b224bf51a02cc3c",
+      "matches_frozen_v29_rc3": true
+    },
+    "qwen3_coder_stream_auto256": {
+      "artifact": "results/release_gate/tp4_v30_rc2_qwen3_coder_stream_string_auto256_20260901.json",
+      "sha256": "3b4001924355c209817f40c046035e9d39e448bc753e635266af743da875ee1d",
+      "pass": true,
+      "argument_chars": 302,
+      "content_len": 256,
+      "content_fragment_count": 19,
+      "finish_reason": "tool_calls"
+    },
+    "default_completion_cap_8192": {
+      "artifact": "results/release_gate/tp4_v30_rc2_default8192_20260901.json",
+      "sha256": "e6b5a143cc4f987ae0a2af17c855f334786417f9ad4913fdf176c20ae5969f48",
+      "pass": true,
+      "completion_tokens": 8192,
+      "finish_reason": "length"
+    },
+    "short_random_smoke_rc2": {
+      "artifact": "results/release_gate/tp4_v30_rc2_short_smoke_20260901.json",
+      "sha256": "edb8f829c29306057eab6294f5534268c394e69f0dfc96e297b4e0495f407ec8",
+      "rows": [
+        {
+          "tokens": 1379,
+          "ttft_s": 1.017447458,
+          "decode_tps": 51.76527636566532,
+          "output_sha256": "602c05bf30424b0997889e92685a4b5d6b1fc7bea63c3b08d744b9556be902b0"
+        },
+        {
+          "tokens": 3001,
+          "ttft_s": 1.1340280419999997,
+          "decode_tps": 70.87607091971256,
+          "output_sha256": "be0c31a8a11e07e7d37b8190932aae08767cee39d19334a339ca05da89e08747"
+        }
+      ]
+    },
+    "shortq_bitwise_boundary": {
+      "artifact": "results/shortctx/v30_shortq_bucket_v2_correctness_o64_20260901.json",
+      "sha256": "71ae9b413fd7b14336d4f809ff425eb957c31dd321d855d89c446f00f36df2a9",
+      "rows": [
+        {
+          "tokens": 2048,
+          "ttft_s": 0.794088333,
+          "output_sha256": "d97907d248948c513b9b5dce11e6830514912e10cb7692a733a6583c5fb0a2cb"
+        },
+        {
+          "tokens": 2230,
+          "ttft_s": 0.6943875830000001,
+          "output_sha256": "55cea1402d2e9e32e8774eecc087d40217fbcc6873c90e95944e67be2c5277bd"
+        },
+        {
+          "tokens": 4006,
+          "ttft_s": 1.1626070829999975,
+          "output_sha256": "be0c31a8a11e07e7d37b8190932aae08767cee39d19334a339ca05da89e08747"
+        },
+        {
+          "tokens": 4095,
+          "ttft_s": 1.1068642919999974,
+          "output_sha256": "fea0aa6f85290e0d1372e9640f963ed716f78ed1edda89be6abe58b7f02ee660"
+        },
+        {
+          "tokens": 4096,
+          "ttft_s": 1.4350714999999994,
+          "output_sha256": "3bbab825f4cad835b453d6e6a2931dfd0aad305246769b0f0d98a869dde42a2d"
+        }
+      ],
+      "matches_prechange_frozen_outputs": true
+    },
+    "shortq_firstseen_compile_probe": {
+      "artifact": "results/shortctx/v30_shortq_bucket_v2_firstseen_20260901.json",
+      "sha256": "6ede5e23f5e2323860ab62b906d023a09a6892974b30cf447374fbc9aee374bb",
+      "rows": [
+        {
+          "tokens": 2048,
+          "ttft_s": 9.731161792
+        },
+        {
+          "tokens": 2230,
+          "ttft_s": 3.715766375000001
+        },
+        {
+          "tokens": 3001,
+          "ttft_s": 1.1333498750000004
+        },
+        {
+          "tokens": 4006,
+          "ttft_s": 1.3535080420000014
+        },
+        {
+          "tokens": 4095,
+          "ttft_s": 1.49383129200001
+        }
+      ],
+      "attn_fwd_variants_after_fix": 1
+    },
+    "longctx_rc1_authority": {
+      "8192": {
+        "artifact": "results/release_gate/v30_rc1_longctx/8192.json",
+        "sha256": "18668c787b2501296295631687be9c665a4cc34e7b618ce7b31dc6eb027e07cd",
+        "ttft_s": 4.910765042,
+        "decode_tps": 103.96722275027993,
+        "total_s": 7.363461125,
+        "output_sha256": "e38c708c2dd40c1c874eef4eb9dc26089e3a99a885eb3ba0456253ec99085227"
+      },
+      "32768": {
+        "artifact": "results/release_gate/v30_rc1_longctx/32768.json",
+        "sha256": "c723864eba5d95981bd630c375410ec55423069924caae46d16183151fdc34d7",
+        "ttft_s": 18.973759833,
+        "decode_tps": 124.96438153709587,
+        "total_s": 21.014341292,
+        "output_sha256": "996b69326e752d53d258e4749c835749c1753dd9beb8467662fe66f4e15e2e31"
+      },
+      "65536": {
+        "artifact": "results/release_gate/v30_rc1_longctx/65536.json",
+        "sha256": "46a372cdfc41c4dcc2773aa50a849f62f68851b2a9169c554d5e6c54698f757c",
+        "ttft_s": 29.742775958,
+        "decode_tps": 96.38207971816843,
+        "total_s": 32.388496,
+        "output_sha256": "1f07d358f79b1a4ec9b356ac82aabafaf9ba3f69d44bb21c8c29e90fa32fb54d"
+      },
+      "131072": {
+        "artifact": "results/release_gate/v30_rc1_longctx/131072.json",
+        "sha256": "1759fbc644a83e2d1085c6f56ef54ea2d3cbd9eaecc8e59acce9be98e67fd8d6",
+        "ttft_s": 89.00078166600001,
+        "decode_tps": 82.5275212923645,
+        "total_s": 92.09066,
+        "output_sha256": "8a3b5aa86546d0dc728892426f025639cda53b0cac61e1fd2e24b6fbcf113f8c"
+      },
+      "32768_repeat2": {
+        "artifact": "results/release_gate/v30_rc1_longctx/32768_repeat2.json",
+        "sha256": "fd472d96d59e464e40ebe7dd643544ea4de5b9a3aeeaba5cf71bbe05e7575789",
+        "ttft_s": 5.297611833,
+        "decode_tps": 117.26780047366066,
+        "total_s": 7.472121792,
+        "output_sha256": "996b69326e752d53d258e4749c835749c1753dd9beb8467662fe66f4e15e2e31"
+      }
+    },
+    "rc2_128k_path_smoke": {
+      "artifact": "results/release_gate/tp4_v30_rc2_128k_smoke_o1_20260901.json",
+      "sha256": "6bedeee182a47c985b301ea6f8e02613fb3b6395f85b3fc4656b41446ffd2793",
+      "note": "warm-prefix/path smoke after earlier 128K traffic; not a cold performance authority",
+      "ttft_s": 9.947379709,
+      "output_sha256": "684e4d0af6e190fa1160ec92e5e44eea1e4bbaf968615c73aa9a18cd09f671ff"
+    },
+    "concurrency_c4_c8_8k": {
+      "artifact": "results/release_gate/tp4_v30_rc1_c4c8_8k_out512_r1_20260901.json",
+      "sha256": "6ed34ab6ab8d36c40f87eebadc2562114e5bcf1aacd7359244408b8d9d88a557",
+      "c4": {
+        "status": "complete",
+        "peak_running": 4.0,
+        "peak_waiting": 0.0,
+        "e2e_tps": 105.29633607966132
+      },
+      "c8": {
+        "status": "complete",
+        "peak_running": 8.0,
+        "peak_waiting": 0.0,
+        "e2e_tps": 152.17056440428274
+      },
+      "note": "synthetic stress only; not production-realism throughput authority"
+    },
+    "disconnect_c8_kill2": {
+      "artifact": "results/release_gate/tp4_v30_rc1_c8_kill2_disconnect_20260901.json",
+      "sha256": "d2e025f8b6cd7abc595cf69aa1c8cde292154edf66a5248021ef320802cec01a",
+      "peak_running": 8,
+      "abort_latency_s": 2.501214375,
+      "survivors_http200_exact1024": true,
+      "idle_t_s": 22.509660625000002
+    },
+    "final_health": {
+      "artifact": "results/release_gate/tp4_v30_rc2_final_health_20260901.json",
+      "sha256": "cb341e13566bb734bd36b58b5e379d339ead7ada6d89283455e590a9c73889c9",
+      "state": "running restart=0 oom=false",
+      "idle": true,
+      "critical_counts": {
+        "traceback": 0,
+        "vmfault": 0,
+        "out_of_resources": 0,
+        "watchdog_event": 0,
+        "sigquit": 0,
+        "missing_physical": 0,
+        "free_tree": 0,
+        "oom_event": 0
+      }
+    },
+    "production_vps_relay": {
+      "artifact": "results/release_gate/tp4_v30_prod_vps_relay_20260901.json",
+      "sha256": "636aeb0855a5b089d413c0f6305c3e12a28b0d3df5b341d570e2eff620278697",
+      "pass": true,
+      "backend_18068_http": 200,
+      "public_no_key_http": 401,
+      "public_authenticated_models_http": 200,
+      "public_sse_done": true,
+      "public_sse_finish": "stop",
+      "public_sse_content": "OK",
+      "restart_policy": "unless-stopped"
+    }
+  },
+  "recommendations": {
+    "supported_max_concurrency": 8,
+    "default_operational_guidance": "Short contexts can benefit from higher concurrency; for 32K+ long-context workloads, c1-c4 is generally preferable because c4->c8 adds little E2E throughput while increasing TTFT.",
+    "performance_authority_note": "Do not use server gen_throughput or low-entropy speculative stress results as real-user throughput authority."
+  }
+}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Qwen3.8 TP2 idle high-HBM cache flush guard
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/root/anaconda3/bin/python3 /data/qwen38-dflash2-k100ai/scripts/idle_cache_flush_guard.py --port 8062 --gpu-id 0 --gpu-id 1 --idle-seconds 600 --poll-seconds 5 --mem-threshold-pct 97 --emergency-idle-seconds 15 --emergency-mem-threshold-pct 99
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

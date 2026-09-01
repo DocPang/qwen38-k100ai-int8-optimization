@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "classification": "TP1 v30 stable production fresh release-freeze gate summary",
+  "timestamp": "2026-09-01T09:41:31.024960+00:00",
+  "port": 8042,
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP1",
+  "artifacts": {
+    "tp1_v30_release_function_matrix_20260901.json": {
+      "path": "/data/qwen38-dflash2-k100ai/results/release_gate/tp1_v30_release_function_matrix_20260901.json",
+      "sha256": "9e253e02f7a9eb15c49ba12dbc7417e095b0f0a3067dfab2f244c377f1fd1076"
+    },
+    "tp1_v30_release_arithmetic20_20260901.json": {
+      "path": "/data/qwen38-dflash2-k100ai/results/release_gate/tp1_v30_release_arithmetic20_20260901.json",
+      "sha256": "83c5daf7ed7eaa73b92cf19a516015815a9645e8a7a94f6e4057927adb888c84"
+    },
+    "tp1_v30_release_thinking_arithmetic20_20260901.json": {
+      "path": "/data/qwen38-dflash2-k100ai/results/release_gate/tp1_v30_release_thinking_arithmetic20_20260901.json",
+      "sha256": "6908712a5739f1d00bc0196f5372870ce14becf71ac418155e67fc0a716ca1a5"
+    },
+    "tp1_v30_release_disconnect_stream_20260901.json": {
+      "path": "/data/qwen38-dflash2-k100ai/results/release_gate/tp1_v30_release_disconnect_stream_20260901.json",
+      "sha256": "6b366b7520612e378bbbe72b93710d1ceeed7f07d8d3fea99cece7599c43acd1"
+    },
+    "tp1_v30_release_disconnect_nonstream_20260901.json": {
+      "path": "/data/qwen38-dflash2-k100ai/results/release_gate/tp1_v30_release_disconnect_nonstream_20260901.json",
+      "sha256": "96d9a0676fb72af45a13b39f11e23d60448d5ae378b297d8121594c6bb1a2f9c"
+    },
+    "tp1_v30_release_cache16k_20260901.json": {
+      "path": "/data/qwen38-dflash2-k100ai/results/release_gate/tp1_v30_release_cache16k_20260901.json",
+      "sha256": "a30a8a12e77a3aca686dee52ec2f6991677e5afaf422ab9765e8680b32373038"
+    }
+  },
+  "pass": true
+}

@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "classification": "TP4 v29 disconnect-auto-abort gate",
+  "timestamp": "2026-09-01T09:40:29.580677+00:00",
+  "base_url": "http://127.0.0.1:8042",
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP1",
+  "rid": "gate-disconnect-8473879c7a7840119f6044d121391c4f",
+  "stream": true,
+  "kill_signal": "kill",
+  "max_tokens": 8192,
+  "before": {
+    "running": 0,
+    "waiting": 0,
+    "throughput": 0.0,
+    "token_usage": 0.0,
+    "speculative": {
+      "accept_length": 4.669444444444444,
+      "accept_rate": 0.6607142857142857
+    }
+  },
+  "running_seen_at": 1788255625.2215896,
+  "kill_time": 1788255626.2866611,
+  "child_returncode": -9,
+  "child_stderr": "",
+  "auto_zero_at": 1788255628.4277842,
+  "auto_abort_latency_s": 2.141123056411743,
+  "abort_deadline_s": 8.0,
+  "explicit_cleanup_required": false,
+  "explicit_abort_status": null,
+  "final_load": {
+    "running": 0,
+    "waiting": 0,
+    "throughput": 6.92,
+    "token_usage": 0.0,
+    "speculative": {
+      "accept_length": 4.8175,
+      "accept_rate": 0.7357142857142858
+    }
+  },
+  "post_abort_smoke": {
+    "status": 200,
+    "ok": true,
+    "body": "{\"text\":\"\\n\\nABORT_GATE_OK\",\"output_ids\":[271,1803,2775,78322,8116,248044],\"meta_info\":{\"id\":\"a480edf18d8a4898beae891840f9f51a\",\"finish_reason\":{\"type\":\"stop\",\"matched\":248044},\"prompt_tokens\":8,\"weight_version\":\"default\",\"num_retractions\":0,\"queue_time\":0.0,\"reasoning_tokens\":0,\"completion_tokens\":6,\"cached_tokens\":0,\"cached_tokens_details\":null,\"dp_rank\":null,\"e2e_latency\":0.8984700781293213,\"spec_accept_rate\":0.21428571428571427,\"spec_accept_length\":3.0,\"spec_num_correct_drafts\":3,\"spec_num_proposed_drafts\":14,\"spec_verify_ct\":2,\"spec_accepted_drafts\":3,\"spec_proposed_drafts\":14,\"request_received_ts\":1788255628.4344566,\"api_server_dispatch_finish_ts\":1788255628.4349864,\"request_finished_ts\":1788255629.3329268,\"decode_throughput\":3401146.1007285397,\"response_sent_to_client_ts\":1788255629.3331246}}"
+  },
+  "container_health": {
+    "available": true,
+    "returncode": 0,
+    "text": "status=running restart=0 oom=false",
+    "healthy": true
+  },
+  "logs": {
+    "available": true,
+    "returncode": 0,
+    "rid_lines": [
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=1 rid=gate-disconnect-8473879c7a7840119f6044d121391c4f protected=0 committed=220 allocated=227",
+      "[K100 DFlash TP4 page-reclaim-fix-v4] ACTIVE event=85 rid=gate-disconnect-8473879c7a7840119f6044d121391c4f tracked_pages=3 reclaimed_pages=[2, 3, 4]"
+    ],
+    "abort_lines": [
+      "[K100 DFlash TP4 abort-nocache-v8] ACTIVE event=1 rid=gate-disconnect-8473879c7a7840119f6044d121391c4f protected=0 committed=220 allocated=227"
+    ],
+    "critical_lines": [],
+    "rid_seen": true,
+    "abort_evidence": true,
+    "critical_count": 0
+  },
+  "samples": [
+    {
+      "phase": "startup",
+      "t": 1788255624.2751107,
+      "dt": 0.04137825965881348,
+      "running": 0,
+      "waiting": 0,
+      "throughput": 0.0,
+      "token_usage": 0.0,
+      "speculative": {
+        "accept_length": 4.669444444444444,
+        "accept_rate": 0.6607142857142857
+      }
+    },
+    {
+      "phase": "startup",
+      "t": 1788255624.5275395,
+      "dt": 0.2938070297241211,
+      "running": 0,
+      "waiting": 0,
+      "throughput": 0.0,
+      "token_usage": 0.0005,
+      "speculative": {
+        "accept_length": 4.669444444444444,
+        "accept_rate": 0.6607142857142857
+      }
+    },
+    {
+      "phase": "startup",
+      "t": 1788255625.2215896,
+      "dt": 0.9878571033477783,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 0.0,
+      "token_usage": 0.0005,
+      "speculative": {
+        "accept_length": 4.669444444444444,
+        "accept_rate": 0.6607142857142857
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788255626.2898724,
+      "dt": 2.0561399459838867,
+      "since_kill": 0.0032112598419189453,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 6.92,
+      "token_usage": 0.0007,
+      "speculative": {
+        "accept_length": 4.8175,
+        "accept_rate": 0.7357142857142858
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788255626.624714,
+      "dt": 2.390981435775757,
+      "since_kill": 0.33805274963378906,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 6.92,
+      "token_usage": 0.0007,
+      "speculative": {
+        "accept_length": 4.8175,
+        "accept_rate": 0.7357142857142858
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788255626.982992,
+      "dt": 2.7492594718933105,
+      "since_kill": 0.6963307857513428,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 6.92,
+      "token_usage": 0.0007,
+      "speculative": {
+        "accept_length": 4.8175,
+        "accept_rate": 0.7357142857142858
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788255627.3369117,
+      "dt": 3.1031792163848877,
+      "since_kill": 1.05025053024292,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 6.92,
+      "token_usage": 0.0007,
+      "speculative": {
+        "accept_length": 4.8175,
+        "accept_rate": 0.7357142857142858
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788255627.6993957,
+      "dt": 3.465663194656372,
+      "since_kill": 1.4127345085144043,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 6.92,
+      "token_usage": 0.0007,
+      "speculative": {
+        "accept_length": 4.8175,
+        "accept_rate": 0.7357142857142858
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788255628.064091,
+      "dt": 3.8303585052490234,
+      "since_kill": 1.7774298191070557,
+      "running": 1,
+      "waiting": 0,
+      "throughput": 6.92,
+      "token_usage": 0.001,
+      "speculative": {
+        "accept_length": 4.8175,
+        "accept_rate": 0.7357142857142858
+      }
+    },
+    {
+      "phase": "after_kill",
+      "t": 1788255628.4277842,
+      "dt": 4.194051742553711,
+      "since_kill": 2.141123056411743,
+      "running": 0,
+      "waiting": 0,
+      "throughput": 6.92,
+      "token_usage": 0.0,
+      "speculative": {
+        "accept_length": 4.8175,
+        "accept_rate": 0.7357142857142858
+      }
+    }
+  ],
+  "pass": true
+}
