@@ -2,6 +2,8 @@
 
 > Qwen3.8-27B W8A8 · DFlash2 · Hygon K100AI
 
+> **2026-09-02 更新：** GitHub 首页现已切换为 v30 / Champion 最优稳定记录。TP1/TP2 使用 2026-09-01 release 数据，TP4 使用短上下文专项 sweep + v30 长上下文 authority；本文件下方历史十档继续原样保留用于版本对比，不再作为首页“当前最好成绩”。
+
 统一测试口径：**canonical corpus / output=256 / DFlash2 / cold / 每档独立 cache flush / contaminated=false**。
 
 > **v1.3.0 / v30 更新：**TP2 same-build formal10 的 257.9K Decode 为 **59.03 tok/s**。TP1 same-build formal10 在 128K/257.9K 偶发落到 20.89/16.47 tok/s；完全 idle、guard 回收高水位后的同 prompt targeted cold repeats 恢复到 **32.16 / 22.76 tok/s**，TTFT 为 175.32/470.29s。发布保留下方历史完整十档作为总体性能参考，并在 `results/v1.3.0/` 同时公开 v30 完整 formal10 和 targeted repeats；不会把不同 run 拼成新的 best-of 十档。
