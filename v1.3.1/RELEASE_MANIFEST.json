@@ -1,0 +1,128 @@
+{
+  "schema": "qwen38-k100ai-release-manifest-v2",
+  "version": "v1.3.1",
+  "date": "2026-09-02",
+  "release_type": "single-final-docker-image-with-auditable-source-assets",
+  "contains_model_weights": false,
+  "final_image": {
+    "archive": "Qwen3.8-K100AI-v1.3.1-final-image.tar.zst",
+    "quark_url": "https://pan.quark.cn/s/2e35321f6278?pwd=gPVV",
+    "quark_code": "gPVV",
+    "archive_sha256": "4e43edd8a0cf5ee0e501aefb051170587b1da3003392fdd2d32a1d9712e11d8f",
+    "archive_bytes": 6759294274,
+    "docker_archive_uncompressed_bytes": 35726982656,
+    "image_tag": "qwen38-k100ai-int8:v1.3.1",
+    "image_id": "sha256:534f9512a3d5217c8f65f11183ed75db19e7aa3df1ecc4da1ba993e98793973d",
+    "docker_reported_size_bytes": 35567693141,
+    "profile_switch": "PROFILE=tp1|tp2|tp4"
+  },
+  "runtime_abi": {
+    "tp1_tp4_flash_attn": "2.8.3+das.opt1.dtk2604.torch290.2607280958.gebb4be",
+    "tp2_embedded_legacy_flash_attn": "2.8.3+das.opt1.dtk2604.torch290.2606021702.ge93bd4",
+    "tp2_legacy_site": "/opt/qwen38-k100ai/tp2_legacy_site",
+    "tp2_fail_closed_sidecar_check": true
+  },
+  "profiles": {
+    "tp1": {
+      "tp": 1,
+      "default_port": 8042,
+      "context_length": 262144,
+      "mem_fraction_static": 0.84,
+      "max_running_requests": 1,
+      "chunked_prefill_size": 8192,
+      "max_prefill_tokens": 16384,
+      "mamba_track_interval": 8192,
+      "max_mamba_cache_size": 8,
+      "allocator_trim_interval_s": 60
+    },
+    "tp2": {
+      "tp": 2,
+      "default_port": 8062,
+      "context_length": 262144,
+      "mem_fraction_static": 0.88,
+      "max_running_requests": 4,
+      "chunked_prefill_size": 8192,
+      "max_prefill_tokens": 16384,
+      "mamba_track_interval": 8192,
+      "max_mamba_cache_size": 16,
+      "allocator_trim_interval_s": 60,
+      "required_fallback_control": [
+        3,
+        23
+      ]
+    },
+    "tp4": {
+      "tp": 4,
+      "default_port": 8068,
+      "context_length": 262144,
+      "mem_fraction_static": 0.95,
+      "max_running_requests": 8,
+      "pp_max_micro_batch_size": 8,
+      "max_total_tokens": 1048576,
+      "chunked_prefill_size": 16384,
+      "max_prefill_tokens": 16384,
+      "mamba_track_interval": 16384,
+      "max_mamba_cache_size": 32,
+      "allocator_trim_interval_s": 60
+    }
+  },
+  "allocator_rootfix": {
+    "mechanism": "all scheduler ranks trim their own device caching allocator from idle housekeeping; rank0 CPU/ZMQ sleep remains separate",
+    "calls_full_flush_cache": false,
+    "clears_logical_prefix_radix_kv_mamba_cache": false,
+    "unified_scheduler_sha256": "e3c19b0e72faadfbd5c14579711a2be6ab72583c13108ae8b7742e068e6719d6",
+    "unified_mixin_sha256": "bfe21d45706a1b54539dff7b64ab15a0800caa80740983ded09f906cf375da20",
+    "sourcefind_scheduler_sha256": "e3c19b0e72faadfbd5c14579711a2be6ab72583c13108ae8b7742e068e6719d6",
+    "sourcefind_mixin_sha256": "8d9f51ff80544b58fa698674913a7689aa0e84747fb1753915add8723c01ac4b"
+  },
+  "validation": {
+    "tp1_gpu2_64k_cache_resume": "pass",
+    "tp2_function_matrix": "9/9 pass",
+    "tp2_mixed_c4": "pass",
+    "tp2_thinking_arithmetic": "20/20",
+    "tp2_nothinking_arithmetic": "18/20 historical baseline; only cases 8,17",
+    "tp2_16k_64k_cache_resume": "pass",
+    "tp2_allocator_trim": "rank0+rank1 pass",
+    "tp4_function_matrix": "9/9 pass",
+    "tp4_mixed_c8": "pass",
+    "tp4_64k_release_authority_cache_resume": "pass",
+    "tp4_allocator_trim": "rank0+rank1+rank2+rank3 pass",
+    "docker_save_zstd_load_roundtrip": "pass; image id preserved",
+    "production_restore_chat_smoke": "tp1/tp2/tp4 HTTP 200 exact OK"
+  },
+  "agent_profile": {
+    "primary_backend": "tp4",
+    "parallel_tool_calls_default": false,
+    "default_max_completion_tokens": 8192,
+    "planning_turn_enable_thinking": true,
+    "tool_execution_turn_enable_thinking": false,
+    "recommended_max_single_string_tool_argument_chars": 2048,
+    "soft_context_compaction_tokens": 230000,
+    "hard_context_compaction_tokens": 240000
+  },
+  "known_boundaries": [
+    "Final-image users do not need install_overlay.sh; it is retained for research/audit only.",
+    "Do not replace the embedded TP2 legacy flash-attn sidecar with the TP1/TP4 260728 runtime.",
+    "parallel_tool_calls=true is not a frozen release authority; default remains false.",
+    "/v1/responses is not a frozen release authority; /v1/chat/completions is the formal compatible API.",
+    "For large write/patch tool calls prefer patch/chunk tools and disable thinking on the tool-execution turn."
+  ],
+  "core_asset_sha256": {
+    "install_overlay.sh": "a70d3483acd298bd9dc54336cdb9d1b948d8addd86bdbc38d7bd5eb3a631c0c7",
+    "scripts/_common.sh": "c2ff44e928ce594d8a727ea94c0b0d77647fed83bbf4a5231fedafdcbba21c4e",
+    "scripts/launch.sh": "0431a3499f2230ad2842c3074d25f8cd5b552c13a5119241864c03729c758798",
+    "scripts/launch_tp1.sh": "7e9cb22d8c07f369973aa6fe164173492cbb77d5b27fda69613474feeca272f5",
+    "scripts/launch_tp2.sh": "76d6101e6e9b8008cb1a27f451707eeb484e0f7c15a03a61b691e7164667a3a8",
+    "scripts/launch_tp4.sh": "67068394acb96d526b22124e0d6ef92434fa28bc4787115087368c1309803d18",
+    "scripts/healthcheck.sh": "381043d2a90200bd31d52225229933faea004fd40f3640c1771d646fd0aa4585",
+    "scripts/launch_sglang_require_sitecustomize.py": "443b3b084a4af229662577511d5a5409ac674062d634f35d10105994f8591a6f",
+    "rootfix/unified/sglang/srt/managers/scheduler.py": "e3c19b0e72faadfbd5c14579711a2be6ab72583c13108ae8b7742e068e6719d6",
+    "rootfix/unified/sglang/srt/managers/scheduler_runtime_checker_mixin.py": "bfe21d45706a1b54539dff7b64ab15a0800caa80740983ded09f906cf375da20",
+    "rootfix/sourcefind/sglang/srt/managers/scheduler.py": "e3c19b0e72faadfbd5c14579711a2be6ab72583c13108ae8b7742e068e6719d6",
+    "rootfix/sourcefind/sglang/srt/managers/scheduler_runtime_checker_mixin.py": "8d9f51ff80544b58fa698674913a7689aa0e84747fb1753915add8723c01ac4b",
+    "native_ext/k100_assign_fixed8_i64_v1.so": "d74d527ad3f2e0e21eb0941d3627be59a222e6bbeb2f60f8ebd4eba43e4b4217",
+    "qwen38_chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+    "tp2_shortmid_layerdiag_fallback_layers.txt": "c454084d3e670b5ef3ed6e8473bc301164731bd0bb3c1137789658e1d2c9b627",
+    "IMAGE_SHA256SUMS": "145dac8936e52a33b182734a22c0c4f41b4fb66df9f2588908bd064e2c442ad8"
+  }
+}

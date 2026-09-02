@@ -1,0 +1,34 @@
+{
+  "model": "Qwen3.8-27B-W8A8-DFlash2-TP4",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Use the calculator tool to compute 13+29."
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "calculator",
+        "description": "Evaluate a simple arithmetic expression",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": ["expression"]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "parallel_tool_calls": false,
+  "stream": true,
+  "max_completion_tokens": 8192,
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  }
+}
