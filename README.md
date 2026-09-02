@@ -1,12 +1,73 @@
 # Qwen3.8-27B W8A8 on K100AI
 
-面向 **Hygon K100AI / gfx928** 的 Qwen3.8-27B W8A8 SGLang 优化方案。
+面向 **Hygon K100AI / gfx928** 的 Qwen3.8-27B W8A8 SGLang + DFlash2 专项优化方案。
 
 当前最新正式版本：**v1.3.1 / v30**。
 
-本项目从早期 vLLM 优化逐步迁移到 SGLang，重点做了 K100AI W8A8 适配、DFlash2、长上下文、缓存复用、TP1 / TP2 / TP4、工具调用、Agent 并发与长期 serving 稳定性优化。
+## 这个项目做了什么
+
+这个项目不是单纯把 Qwen3.8-27B “跑起来”，而是围绕 **K100AI 上的长期实际推理性能、正确性和 Agent 使用体验**做了一整套专项优化：
+
+- 将 **Qwen3.8-27B W8A8 + DFlash2** 适配到 K100AI / gfx928，并修复量化、flash-attn、工具调用等兼容性问题；
+- 分别优化 **TP1 / TP2 / TP4**，覆盖 1 / 2 / 4 张 K100AI，并针对不同并行度使用不同优化路径；
+- 重点优化 **32K～128K Agent 长上下文**，并持续验证到 **257.9K**；
+- 优化 **TTFT、Decode、Prefix/Cache Resume、并发吞吐**，减少长会话和 Agent 连续工作的重复计算；
+- 完整验证 OpenAI Compatible API、reasoning、JSON / regex grammar、tool calling、sampling、多模态图片输入和断连回收；
+- v1.3.1 进一步完成 **单镜像 TP1 / TP2 / TP4**、all-rank allocator 显存根修和 Agent c4 / c8 功能门禁。
 
 > ⚠️ 本项目是社区研究成果，不是海光、SourceFind、Qwen、SGLang 或 DFlash2 官方发行版。请确保宿主机 K100AI 驱动、`/dev/kfd`、`/opt/hyhal` 和 Docker 本身工作正常。
+
+## 性能展示
+
+下面是仓库公开的 **TP1 / TP2 / TP4 正式十档性能参考**。
+
+统一口径：**canonical corpus / output=256 / DFlash2 / cold / 每档独立 cache flush / contaminated=false**。
+
+> v1.3.1 本次主要更新长期 serving 稳定性、显存 allocator rootfix、Agent 能力和最终单镜像封装，没有把不同测试轮次重新拼成一张“best-of”表。因此这里继续展示已经公开冻结的十档 authority，便于横向比较 TP1 / TP2 / TP4。更晚的 targeted repeat 和 v30 补充结果见 [`PERFORMANCE.md`](PERFORMANCE.md) 与 `results/`。
+
+### 十档 TTFT / Decode
+
+| 上下文 | TP1 TTFT | TP1 Decode | TP2 TTFT | TP2 Decode | TP4 TTFT | TP4 Decode |
+|---:|---:|---:|---:|---:|---:|---:|
+| 512 | 5.93s | 23.92 tok/s | 0.42s | 70.61 tok/s | 0.41s | 100.74 tok/s |
+| 2K | 7.21s | 28.65 tok/s | 1.62s | 86.08 tok/s | 1.08s | 119.03 tok/s |
+| 4K | 12.41s | 25.65 tok/s | 4.15s | 77.09 tok/s | 2.36s | 95.65 tok/s |
+| 8K | 8.42s | 27.58 tok/s | 3.89s | 83.24 tok/s | 2.40s | 110.88 tok/s |
+| 12K | 13.74s | 28.29 tok/s | 12.92s | 85.27 tok/s | 4.12s | 91.06 tok/s |
+| 16K | 16.55s | 26.59 tok/s | 9.59s | 81.27 tok/s | 4.60s | 113.10 tok/s |
+| 32K | 34.01s | 27.30 tok/s | 23.23s | 79.05 tok/s | 10.01s | **128.25 tok/s** |
+| 64K | 72.66s | 31.68 tok/s | 40.36s | 73.32 tok/s | 22.18s | **102.21 tok/s** |
+| 128K | 174.68s | 33.90 tok/s | 90.66s | 49.98 tok/s | 49.45s | **88.68 tok/s** |
+| 257.9K | 466.44s | 24.30 tok/s | 234.28s | 53.10 tok/s | 132.25s | **72.49 tok/s** |
+
+### 十档端到端总耗时
+
+| 上下文 | TP1 Total | TP2 Total | TP4 Total |
+|---:|---:|---:|---:|
+| 512 | 16.59s | 4.03s | 2.94s |
+| 2K | 16.11s | 4.58s | 3.22s |
+| 4K | 22.35s | 7.45s | 5.03s |
+| 8K | 17.67s | 6.95s | 4.70s |
+| 12K | 22.75s | 15.91s | 6.92s |
+| 16K | 26.14s | 12.73s | 6.86s |
+| 32K | 43.35s | 26.45s | 12.00s |
+| 64K | 80.71s | 43.83s | 24.68s |
+| 128K | 182.20s | 95.76s | 52.32s |
+| 257.9K | 476.93s | 239.09s | 135.77s |
+
+### 长上下文快速对比
+
+| Profile | GPU | 64K Decode | 128K Decode | 257.9K Decode | 建议用途 |
+|---|---:|---:|---:|---:|---|
+| **TP1** | 1 | 31.68 tok/s | 33.90 tok/s | 24.30 tok/s | GPU 最省、单用户 / worker |
+| **TP2** | 2 | 73.32 tok/s | 49.98 tok/s | 53.10 tok/s | 性能 / GPU 成本平衡 |
+| **TP4** | 4 | **102.21 tok/s** | **88.68 tok/s** | **72.49 tok/s** | 长上下文、Agent、并发主力 |
+
+![TP1 / TP2 / TP4 十档性能对比](assets/tp1_tp2_tp4_10level.png)
+
+详细测试口径、补充结果和 authority 文件见 [`PERFORMANCE.md`](PERFORMANCE.md)。
+
+---
 
 ## v1.3.1 最重要的变化
 
