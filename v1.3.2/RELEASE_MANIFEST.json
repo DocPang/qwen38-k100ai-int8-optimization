@@ -1,0 +1,106 @@
+{
+  "version": "v1.3.2",
+  "release_date": "2026-09-08",
+  "release_type": "runtime-hotfix",
+  "new_docker_image": false,
+  "base_image": {
+    "tag": "qwen38-k100ai-int8:v1.3.1",
+    "image_id": "sha256:534f9512a3d5217c8f65f11183ed75db19e7aa3df1ecc4da1ba993e98793973d"
+  },
+  "scope": {
+    "tp4": "DFlash/Mamba verify-boundary checkpoint materialization fix",
+    "tp1": "unchanged from v1.3.1",
+    "tp2": "unchanged from v1.3.1"
+  },
+  "upstream_reference": "https://github.com/sgl-project/sglang/issues/37817",
+  "production_validation": [
+    {
+      "cached_prefix": 49152,
+      "fresh_replay": 1600,
+      "verdict": "PASS",
+      "cached_e2e_s": 7.4,
+      "cold_cached_token_exact": true
+    },
+    {
+      "cached_prefix": 114688,
+      "fresh_replay": 2496,
+      "verdict": "PASS",
+      "cached_e2e_s": 5.63,
+      "cold_cached_token_exact": true
+    },
+    {
+      "cached_prefix": 131072,
+      "fresh_replay": 128,
+      "verdict": "PASS",
+      "cached_e2e_s": 2.79,
+      "cold_cached_token_exact": true
+    }
+  ],
+  "final_runtime_state": {
+    "restart_count": 0,
+    "oom_killed": false,
+    "health_http": 200
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "size": 5546,
+      "sha256": "474b27b0681eae8263cf1d99281ab5ef59a9db3333f8b8c1fe0b30b4a3d5a985"
+    },
+    {
+      "path": "VERSION",
+      "size": 7,
+      "sha256": "a934c1143c788f915bc859df1c72790712bf1d44c348a580602dd0939b0ab270"
+    },
+    {
+      "path": "hotfix/runtime_patch_dflash_tp4_mamba_verify_boundary_fix_v1/sitecustomize.py",
+      "size": 3473,
+      "sha256": "894385b99d7b2e3970882152f1f7b37d57bd9874ceebace836cb07c33eaaab39"
+    },
+    {
+      "path": "hotfix/runtime_patch_dflash_tp4_v30_base_v131/sitecustomize.py",
+      "size": 3002,
+      "sha256": "961a6b781add4a7c625f40eb1b3a6298a7b13bedc3a7117e41149ea42706ce99"
+    },
+    {
+      "path": "hotfix/runtime_patch_dflash_tp4_v30_mamba_boundaryfix_v1/sitecustomize.py",
+      "size": 863,
+      "sha256": "a9f1f569847a3cb2a3dc100bb3cf2a024dcc1c3f2f4c744808397ce0c4ccd865"
+    },
+    {
+      "path": "scripts/_common.sh",
+      "size": 3021,
+      "sha256": "c2ff44e928ce594d8a727ea94c0b0d77647fed83bbf4a5231fedafdcbba21c4e"
+    },
+    {
+      "path": "scripts/healthcheck.sh",
+      "size": 2416,
+      "sha256": "381043d2a90200bd31d52225229933faea004fd40f3640c1771d646fd0aa4585"
+    },
+    {
+      "path": "scripts/launch.sh",
+      "size": 1096,
+      "sha256": "e0ebd971dec3e2a11ecda05aaf2ade51ddea56fa03855acfa33c5804eeb372bd"
+    },
+    {
+      "path": "scripts/launch_tp1.sh",
+      "size": 2427,
+      "sha256": "7e9cb22d8c07f369973aa6fe164173492cbb77d5b27fda69613474feeca272f5"
+    },
+    {
+      "path": "scripts/launch_tp2.sh",
+      "size": 2881,
+      "sha256": "76d6101e6e9b8008cb1a27f451707eeb484e0f7c15a03a61b691e7164667a3a8"
+    },
+    {
+      "path": "scripts/launch_tp4.sh",
+      "size": 3897,
+      "sha256": "94ff4bce9f3532e12fa241f5fa2f04e70270367467b1dff5ba61408f992cb536"
+    },
+    {
+      "path": "test_boundary_fix.py",
+      "size": 1593,
+      "sha256": "4d53d68bb7d0b363ff4da5a9afbced0356e9dd5d97d7e787387339c629739452"
+    }
+  ]
+}

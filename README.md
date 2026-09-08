@@ -2,7 +2,7 @@
 
 面向 **Hygon K100AI / gfx928** 的 Qwen3.8-27B W8A8 SGLang + DFlash2 专项优化方案。
 
-当前最新正式版本：**v1.3.1 / v30**。
+当前最新正式版本：**v1.3.2 / v30 TP4 hotfix**。v1.3.2 不重新发布镜像，继续使用 v1.3.1 最终镜像并挂载一个很小的 TP4 DFlash/Mamba boundary 补丁。
 
 ## 这个项目做了什么
 
@@ -13,7 +13,8 @@
 - 重点优化 **32K～128K Agent 长上下文**，并持续验证到 **257.9K**；
 - 优化 **TTFT、Decode、Prefix/Cache Resume、并发吞吐**，减少长会话和 Agent 连续工作的重复计算；
 - 完整验证 OpenAI Compatible API、reasoning、JSON / regex grammar、tool calling、sampling、多模态图片输入和断连回收；
-- v1.3.1 进一步完成 **单镜像 TP1 / TP2 / TP4**、all-rank allocator 显存根修和 Agent c4 / c8 功能门禁。
+- v1.3.1 进一步完成 **单镜像 TP1 / TP2 / TP4**、all-rank allocator 显存根修和 Agent c4 / c8 功能门禁；
+- v1.3.2 修复 **TP4 DFlash verify 跨 Mamba tracking boundary 时漏 materialize checkpoint** 导致的长 Agent / OpenCode cached-resume rank 失步与 300 秒 watchdog 卡死。
 
 > ⚠️ 本项目是社区研究成果，不是海光、SourceFind、Qwen、SGLang 或 DFlash2 官方发行版。请确保宿主机 K100AI 驱动、`/dev/kfd`、`/opt/hyhal` 和 Docker 本身工作正常。
 
@@ -72,6 +73,61 @@ TP4 的短上下文已经不是旧表里“4K 只有 95 tok/s 左右”的状态
 ![TP1 / TP2 / TP4 十档性能对比](assets/tp1_tp2_tp4_10level.png)
 
 历史统一十档、完整口径和原始 authority 文件仍保留在 [`PERFORMANCE.md`](PERFORMANCE.md) 与 `results/`，便于复现和比较版本变化。
+
+---
+
+## v1.3.2：TP4 DFlash/Mamba Boundary Hotfix
+
+v1.3.2 是基于 v1.3.1 最终镜像的小补丁，**不重新上传 Docker 镜像，也不需要重新下载模型权重**。
+
+小补丁包：[`Qwen3.8-K100AI-v1.3.2-hotfix.tar.gz`](Qwen3.8-K100AI-v1.3.2-hotfix.tar.gz)（约 13 KiB）
+
+SHA256：
+
+```text
+1da6cb64abbef1a637d10d83c139a70bc74b10476d31ee4ab624c322456be896
+```
+
+继续使用：
+
+```text
+qwen38-k100ai-int8:v1.3.1
+```
+
+本次实机复现并修复了 OpenCode / coding Agent 多轮工具调用中可能出现的 TP4 卡死：prefill 完成后不再进入正常 decode，TP0 停在 CPU futex、TP1～TP3 停在 `kfd_wait_on_events`，最终 300 秒 scheduler watchdog 重启。
+
+根因是 DFlash verify 跨 Mamba 16K tracking boundary 时，旧代码用尚未推进 accepted tokens 的 `batch.seq_lens` 判断边界，可能造成 full-attention KV 已推进、Mamba recurrent checkpoint 仍旧，随后 Radix cached-resume 恢复到不一致状态。该问题与 SGLang upstream `#37817` 描述一致。
+
+v1.3.2 只修正 post-verify boundary 计算：
+
+```python
+seq_lens_post_verify = seq_lens_pre_verify + commit_lens
+```
+
+**不撤销现有 short-Q / q8 / q16 / long-KV 动态性能路由。**
+
+K100AI TP4 已复测：
+
+| cached prefix | fresh replay | 结果 |
+|---:|---:|---|
+| 49,152 | 1,600 | PASS，cold/cached 逐 token 一致 |
+| 114,688 | 2,496 | PASS，cold/cached 逐 token 一致 |
+| 131,072 | 128 | PASS，cold/cached 逐 token 一致 |
+
+升级：
+
+```bash
+cd v1.3.2
+python3 test_boundary_fix.py
+
+export TARGET_MODEL=/path/to/target
+export DRAFT_MODEL=/path/to/draft
+./scripts/launch.sh tp4
+```
+
+v1.3.2 launcher 会继续启动 v1.3.1 镜像，并自动把 hotfix 以只读 volume 挂入容器。TP1 / TP2 保持 v1.3.1 runtime 不变。
+
+详细说明：[`RELEASE_NOTES_v1.3.2.md`](RELEASE_NOTES_v1.3.2.md) / [`v1.3.2/README.md`](v1.3.2/README.md)。
 
 ---
 
@@ -513,4 +569,4 @@ TP4 并发总吞吐会随 prompt / cache / 输出长度变化。v1.3.1 正式配
 - [v1.2.1 Release Notes](RELEASE_NOTES_v1.2.1.md)
 - [v1.2.0 Release Notes](RELEASE_NOTES_v1.2.0.md)
 
-历史版本继续保留用于复现和回滚，但**新部署请直接使用 v1.3.1 最终单镜像**。
+历史版本继续保留用于复现和回滚。**新部署仍先使用 v1.3.1 最终单镜像；TP4 建议再叠加 v1.3.2 hotfix。**
