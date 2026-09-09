@@ -214,6 +214,37 @@ sha256:534f9512a3d5217c8f65f11183ed75db19e7aa3df1ecc4da1ba993e98793973d
 
 发布前已经实际执行过 `docker save -> zstd -> 删除 tag -> zstd -dc | docker load` 回环验证，load 后 Image ID 与原镜像完全一致。
 
+### 如果本地显示了不同的 Image ID
+
+先不要关闭 v1.3.2 的镜像校验，也不要直接设置 `ALLOW_UNVERIFIED_IMAGE=1`。请先确认下载到的是正式归档：
+
+```bash
+sha256sum Qwen3.8-K100AI-v1.3.1-final-image.tar.zst
+```
+
+正式归档必须是：
+
+```text
+4e43edd8a0cf5ee0e501aefb051170587b1da3003392fdd2d32a1d9712e11d8f
+```
+
+然后检查当前同名镜像：
+
+```bash
+docker image inspect qwen38-k100ai-int8:v1.3.1 --format \
+'ID={{.Id}} version={{index .Config.Labels "org.opencontainers.image.version"}} title={{index .Config.Labels "org.opencontainers.image.title"}}'
+```
+
+正式归档通过 `docker load` 后应得到 Image ID `sha256:534f9512...93973d`，并带有 `version=1.3.1` / `title=Qwen3.8-27B K100AI Unified v1.3.1`。
+
+**不要使用 `docker import` 导入这个文件。** `docker import` 会创建一个新的镜像，Image ID 会变化，并可能丢失原镜像的 entrypoint、labels 等元数据。正确方式始终是：
+
+```bash
+zstd -dc Qwen3.8-K100AI-v1.3.1-final-image.tar.zst | docker load
+```
+
+如果归档 SHA256 正确、使用的也是 `docker load`，但最终 Image ID 仍然不是 `534f...`，请把上述两条命令的完整输出贴出来再定位。
+
 ---
 
 # 2. 准备模型权重
