@@ -1,0 +1,13 @@
+{
+  "requested": 1319,
+  "completed": 1319,
+  "correct": 1254,
+  "accuracy_pct": 95.072,
+  "finish_reason_length": 5,
+  "length_pct": 0.38,
+  "non_truncated_pct": 95.4338,
+  "reasoning_chars_median": 545,
+  "shots": 5,
+  "max_tokens": 4096,
+  "system_chars": 0
+}
